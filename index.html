@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ボトルネック因数分解ツール</title>
+<style>
+  :root {
+    --bg: #0D1117;
+    --surface: #161B22;
+    --border: #30363D;
+    --text: #F0F6FF;
+    --muted: #8B949E;
+    --blue: #3B82F6;
+    --green: #10B981;
+    --yellow: #F59E0B;
+    --red: #EF4444;
+    --red-glow: rgba(239,68,68,0.15);
+    --green-glow: rgba(16,185,129,0.12);
+    --yellow-glow: rgba(245,158,11,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; padding: 32px 16px 64px; }
+  header { text-align: center; margin-bottom: 48px; }
+  header .label { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--blue); text-transform: uppercase; margin-bottom: 12px; }
+  header h1 { font-size: clamp(22px, 4vw, 36px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+  header p { color: var(--muted); font-size: 14px; margin-top: 10px; max-width: 480px; margin-inline: auto; line-height: 1.6; }
+  .report-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 10px 22px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; letter-spacing: 0.01em; transition: opacity 0.15s, transform 0.1s; }
+  .report-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .panel-title { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; font-family: 'Courier New', monospace; }
+  .node-card { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; transition: border-color 0.2s, background 0.2s, box-shadow 0.3s; cursor: default; }
+  .node-card.bottleneck { border-color: var(--red); background: var(--red-glow); box-shadow: 0 0 16px var(--red-glow); }
+  .node-card.causal { border-color: var(--green); background: var(--green-glow); }
+  .node-card.correlational { border-color: var(--yellow); background: var(--yellow-glow); }
+  .node-card.none-rel { border-color: var(--border); }
+  .node-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .node-emoji { font-size: 14px; }
+  .node-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; }
+  .node-name input { background: transparent; border: none; color: var(--text); font-size: 14px; font-weight: 600; width: 100%; outline: none; font-family: inherit; }
+  .node-name input::placeholder { color: var(--muted); font-weight: 400; }
+  .node-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .rel-label { font-size: 10px; color: var(--muted); font-family: 'Courier New', monospace; flex-shrink: 0; }
+  .rel-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 11px; padding: 3px 6px; border-radius: 4px; outline: none; cursor: pointer; font-family: 'Courier New', monospace; transition: border-color 0.2s; }
+  .rel-select:focus { border-color: var(--blue); }
+  .score-label { font-size: 10px; color: var(--muted); font-family: 'Courier New', monospace; flex-shrink: 0; margin-left: 6px; }
+  .score-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 11px; padding: 3px 6px; border-radius: 4px; outline: none; width: 54px; font-family: 'Courier New', monospace; transition: border-color 0.2s; }
+  .score-input:focus { border-color: var(--blue); }
+  .badge { font-size: 10px; font-family: 'Courier New', monospace; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+  .badge-bottleneck { background: rgba(239,68,68,0.25); color: var(--red); }
+  .badge-causal { background: rgba(16,185,129,0.2); color: var(--green); }
+  .badge-corr { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .level-block { margin-bottom: 4px; }
+  .level-header { font-family: 'Courier New', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; padding-left: 4px; display: flex; align-items: center; gap: 8px; }
+  .level-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .result-section { margin-bottom: 20px; }
+  .result-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-family: 'Courier New', monospace; margin-bottom: 10px; }
+  .result-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; line-height: 1.5; transition: border-color 0.2s; }
+  .result-item.is-bottleneck { border-color: var(--red); }
+  .result-item .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-green { background: var(--green); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-gray { background: var(--muted); }
+  .result-item strong { display: block; font-weight: 600; margin-bottom: 2px; }
+  .result-item span { color: var(--muted); font-size: 12px; }
+  .empty-state { color: var(--muted); font-size: 13px; text-align: center; padding: 32px 0; font-family: 'Courier New', monospace; }
+  .formula-bar { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: var(--blue); margin-bottom: 20px; letter-spacing: 0.02em; white-space: nowrap; overflow-x: auto; }
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .score-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+  .score-card .num { font-size: 22px; font-weight: 700; font-family: 'Courier New', monospace; line-height: 1; }
+  .score-card .num.red { color: var(--red); }
+  .score-card .num.green { color: var(--green); }
+  .score-card .num.yellow { color: var(--yellow); }
+  .score-card .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; font-family: 'Courier New', monospace; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'Courier New', monospace; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .add-btn { background: transparent; border: 1px dashed var(--border); color: var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'Courier New', monospace; transition: all 0.15s; margin-top: 4px; }
+  .add-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .remove-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; transition: color 0.15s; flex-shrink: 0; }
+  .remove-btn:hover { color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="label">Fermi Bottleneck Finder</div>
+  <h1>企業ボトルネック<br>因数分解ツール</h1>
+  <p>売上を因数分解して、各要素の関係性（因果・相関）と影響度を入力するだけでボトルネックを特定します。</p>
+  <button class="report-btn" onclick="openReport()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    ロジックツリーレポートを出力
+  </button>
+</header>
+
+<div class="layout">
+  <div class="panel">
+    <div class="panel-title">// 因数分解ツリー</div>
+    <div id="tree-container"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">// 診断結果</div>
+    <div class="formula-bar" id="formula-bar">売上 = ...</div>
+    <div class="score-grid">
+      <div class="score-card"><div class="num red" id="cnt-bottleneck">0</div><div class="lbl">ボトルネック</div></div>
+      <div class="score-card"><div class="num green" id="cnt-causal">0</div><div class="lbl">因果あり</div></div>
+      <div class="score-card"><div class="num yellow" id="cnt-corr">0</div><div class="lbl">相関のみ</div></div>
+    </div>
+    <div class="result-section" id="bottleneck-section" style="display:none">
+      <div class="result-title">🔴 ボトルネック（要因果確認）</div>
+      <div id="bottleneck-list"></div>
+    </div>
+    <div class="result-section" id="causal-section" style="display:none">
+      <div class="result-title">🟢 因果確認済み — 施策効果が出やすい</div>
+      <div id="causal-list"></div>
+    </div>
+    <div class="result-section" id="corr-section" style="display:none">
+      <div class="result-title">🟡 相関のみ — 第三因子の可能性あり</div>
+      <div id="corr-list"></div>
+    </div>
+    <div class="empty-state" id="empty-state">← 左でノードを設定すると<br>診断結果がここに表示されます</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>ボトルネック</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>因果あり</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>相関のみ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>未設定</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var DEFAULT_TREE = {
+  id: 'root', name: '売上', emoji: '💰', children: [
+    { id: 'l1a', name: '顧客数', emoji: '👥', rel: 'none', score: '', children: [
+      { id: 'l2a', name: '新規獲得数', emoji: '✨', rel: 'none', score: '', children: [] },
+      { id: 'l2b', name: 'リピート率',  emoji: '🔄', rel: 'none', score: '', children: [] }
+    ]},
+    { id: 'l1b', name: '客単価', emoji: '💴', rel: 'none', score: '', children: [
+      { id: 'l2c', name: '注文単価',     emoji: '🛒', rel: 'none', score: '', children: [] },
+      { id: 'l2d', name: '注文頻度(月)', emoji: '📅', rel: 'none', score: '', children: [] }
+    ]}
+  ]
+};
+
+var idCounter = 100;
+function newId() { return 'n' + (++idCounter); }
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+var state = deepClone(DEFAULT_TREE);
+
+function getCardClass(node) {
+  var s = parseInt(node.score) || 0;
+  if ((node.rel === 'corr' || node.rel === 'none') && s >= 7) return 'bottleneck';
+  if (node.rel === 'causal' || node.rel === 'both') return 'causal';
+  if (node.rel === 'corr') return 'correlational';
+  return 'none-rel';
+}
+
+function getBadge(node) {
+  var s = parseInt(node.score) || 0;
+  if ((node.rel === 'corr' || node.rel === 'none') && s >= 7) return '<span class="badge badge-bottleneck">⚠ BOTTLENECK</span>';
+  if (node.rel === 'causal' || node.rel === 'both') return '<span class="badge badge-causal">因果確認済</span>';
+  if (node.rel === 'corr') return '<span class="badge badge-corr">相関のみ</span>';
+  return '';
+}
+
+function findNode(id, node) {
+  if (node.id === id) return node;
+  for (var i = 0; i < (node.children||[]).length; i++) {
+    var found = findNode(id, node.children[i]);
+    if (found) return found;
+  }
+  return null;
+}
+
+function removeFromChildren(id, node) {
+  if (!node.children) return;
+  var idx = node.children.findIndex(function(c){ return c.id === id; });
+  if (idx !== -1) { node.children.splice(idx, 1); return; }
+  node.children.forEach(function(c){ removeFromChildren(id, c); });
+}
+
+function collectAllNodes(node, acc) {
+  acc = acc || [];
+  if (node.id !== 'root') acc.push(node);
+  (node.children || []).forEach(function(c){ collectAllNodes(c, acc); });
+  return acc;
+}
+
+function updateField(id, field, value) {
+  var node = findNode(id, state);
+  if (!node) return;
+  node[field] = value;
+  var card = document.querySelector('.node-card[data-id="' + id + '"]');
+  if (card) {
+    card.className = 'node-card ' + getCardClass(node);
+    var old = card.querySelector('.badge');
+    if (old) old.remove();
+    var nameRow = card.querySelector('.node-name-row');
+    var removeBtn = nameRow.querySelector('.remove-btn');
+    var bh = getBadge(node);
+    if (bh) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = bh;
+      nameRow.insertBefore(tmp.firstChild, removeBtn);
+    }
+  }
+  updateResults();
+}
+
+function renderChildNode(node, container, depth) {
+  var card = document.createElement('div');
+  card.className = 'node-card ' + getCardClass(node);
+  card.dataset.id = node.id;
+  card.innerHTML =
+    '<div class="node-name-row">'
+    + '<span class="node-emoji">' + node.emoji + '</span>'
+    + '<div class="node-name"><input type="text" value="' + node.name + '" placeholder="指標名を入力" data-id="' + node.id + '" data-field="name"></div>'
+    + getBadge(node)
+    + '<button class="remove-btn" data-remove="' + node.id + '" title="削除">×</button>'
+    + '</div>'
+    + '<div class="node-controls">'
+    + '<span class="rel-label">売上との関係:</span>'
+    + '<select class="rel-select" data-id="' + node.id + '" data-field="rel">'
+    + '<option value="none"' + (node.rel==='none'?' selected':'') + '>未設定</option>'
+    + '<option value="causal"' + (node.rel==='causal'?' selected':'') + '>✅ 因果あり</option>'
+    + '<option value="corr"' + (node.rel==='corr'?' selected':'') + '>〜 相関のみ</option>'
+    + '<option value="both"' + (node.rel==='both'?' selected':'') + '>⚡ 因果+相関</option>'
+    + '</select>'
+    + '<span class="score-label">影響度(1-10):</span>'
+    + '<input type="number" min="1" max="10" class="score-input" placeholder="—" value="' + node.score + '" data-id="' + node.id + '" data-field="score">'
+    + '</div>';
+
+  card.querySelector('[data-field="name"]').addEventListener('input', function(e){ updateField(node.id, 'name', e.target.value); });
+  card.querySelector('[data-field="rel"]').addEventListener('change', function(e){ updateField(node.id, 'rel', e.target.value); });
+  card.querySelector('[data-field="score"]').addEventListener('input', function(e){ updateField(node.id, 'score', e.target.value); });
+  card.querySelector('[data-remove]').addEventListener('click', function(){ removeFromChildren(node.id, state); renderTree(); });
+  container.appendChild(card);
+
+  if (depth === 1) {
+    var subWrap = document.createElement('div');
+    subWrap.style.cssText = 'padding-left:24px;margin-bottom:4px';
+    if (node.children && node.children.length) {
+      var subLabel = document.createElement('div');
+      subLabel.style.cssText = 'font-family:"Courier New",monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:6px 0;opacity:0.6';
+      subLabel.textContent = '\u2514 Level 2 分解';
+      subWrap.appendChild(subLabel);
+      node.children.forEach(function(child){ renderChildNode(child, subWrap, 2); });
+    }
+    var addBtn = document.createElement('button');
+    addBtn.className = 'add-btn';
+    addBtn.textContent = '+ "' + (node.name || '?') + '" を分解';
+    addBtn.onclick = function(){ node.children.push({ id: newId(), name: '', emoji: '📌', rel: 'none', score: '', children: [] }); renderTree(); };
+    subWrap.appendChild(addBtn);
+    container.appendChild(subWrap);
+  }
+}
+
+function renderTree() {
+  var container = document.getElementById('tree-container');
+  container.innerHTML = '';
+
+  var rootEl = document.createElement('div');
+  rootEl.style.marginBottom = '16px';
+  rootEl.innerHTML = '<div class="level-header">Level 0 — ゴール指標</div>'
+    + '<div class="node-card" style="border-color:var(--blue);background:rgba(59,130,246,0.08)">'
+    + '<div class="node-name-row"><span class="node-emoji">' + state.emoji + '</span>'
+    + '<span class="node-name" style="color:var(--blue);font-size:15px">' + state.name + '</span></div>'
+    + '<div style="font-size:11px;color:var(--muted);font-family:\'Courier New\',monospace">因数分解の起点</div>'
+    + '</div>';
+  container.appendChild(rootEl);
+
+  var l1Block = document.createElement('div');
+  l1Block.className = 'level-block';
+  l1Block.innerHTML = '<div class="level-header">Level 1 — 第一分解</div>';
+  state.children.forEach(function(child){ renderChildNode(child, l1Block, 1); });
+  var addL1 = document.createElement('button');
+  addL1.className = 'add-btn';
+  addL1.textContent = '+ 第一階層を追加';
+  addL1.onclick = function(){ state.children.push({ id: newId(), name: '', emoji: '📊', rel: 'none', score: '', children: [] }); renderTree(); };
+  l1Block.appendChild(addL1);
+  container.appendChild(l1Block);
+
+  updateResults();
+}
+
+function updateResults() {
+  var nodes = collectAllNodes(state);
+  var named = nodes.filter(function(n){ return n.name.trim(); });
+  var l1 = state.children.map(function(n){ return n.name || '?'; }).join(' × ');
+  document.getElementById('formula-bar').textContent = '売上 = ' + (l1 || '...');
+
+  var bottlenecks = [], causals = [], corrs = [];
+  named.forEach(function(n) {
+    var s = parseInt(n.score) || 0;
+    if ((n.rel === 'corr' || n.rel === 'none') && s >= 7) bottlenecks.push(n);
+    else if (n.rel === 'causal' || n.rel === 'both') causals.push(n);
+    else if (n.rel === 'corr') corrs.push(n);
+  });
+
+  document.getElementById('cnt-bottleneck').textContent = bottlenecks.length;
+  document.getElementById('cnt-causal').textContent = causals.length;
+  document.getElementById('cnt-corr').textContent = corrs.length;
+
+  var hasAny = bottlenecks.length + causals.length + corrs.length > 0;
+  document.getElementById('empty-state').style.display = hasAny ? 'none' : 'block';
+
+  renderResultList('bottleneck-section', 'bottleneck-list', bottlenecks, 'bottleneck');
+  renderResultList('causal-section', 'causal-list', causals, 'causal');
+  renderResultList('corr-section', 'corr-list', corrs, 'corr');
+}
+
+function renderResultList(sectionId, listId, nodes, type) {
+  var section = document.getElementById(sectionId);
+  var list = document.getElementById(listId);
+  if (!nodes.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  var dotClass = { bottleneck: 'dot-red', causal: 'dot-green', corr: 'dot-yellow' }[type];
+  var msg = {
+    bottleneck: function(n){ return '影響度 ' + n.score + '/10 — 因果関係が未確認。施策を打っても効果が出ない可能性あり。まず因果検証が必要。'; },
+    causal:     function(n){ return '影響度 ' + (n.score||'未入力') + '/10 — 施策の効果が売上に直結する可能性が高い。'; },
+    corr:       function(n){ return '影響度 ' + (n.score||'未入力') + '/10 — 第三の変数が存在する可能性あり。単純施策では効果が出ない場合も。'; }
+  }[type];
+  nodes.forEach(function(n) {
+    var item = document.createElement('div');
+    item.className = 'result-item' + (type === 'bottleneck' ? ' is-bottleneck' : '');
+    item.innerHTML = '<div class="dot ' + dotClass + '"></div><div><strong>' + n.emoji + ' ' + n.name + '</strong><span>' + msg(n) + '</span></div>';
+    list.appendChild(item);
+  });
+}
+
+// ---------- REPORT ----------
+function openReport() {
+  var nodes = collectAllNodes(state);
+  var named = nodes.filter(function(n){ return n.name.trim(); });
+  var date = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
+
+  var bottlenecks = [], causals = [], corrs = [];
+  named.forEach(function(n) {
+    var s = parseInt(n.score) || 0;
+    if ((n.rel === 'corr' || n.rel === 'none') && s >= 7) bottlenecks.push(n);
+    else if (n.rel === 'causal' || n.rel === 'both') causals.push(n);
+    else if (n.rel === 'corr') corrs.push(n);
+  });
+
+  var col0 = [state];
+  var col1 = state.children;
+  var col2 = state.children.reduce(function(a,c){ return a.concat(c.children||[]); }, []);
+
+  var COL_W = 210, ROW_H = 90, BOX_W = 170, BOX_H = 58, PAD = 20;
+  var maxRows = Math.max(col0.length, col1.length, col2.length);
+  var svgH = maxRows * ROW_H + 80;
+  var svgW = COL_W * 3 + PAD * 2;
+
+  function nc(n) {
+    if (n.id === 'root') return { fill:'#1a2744', stroke:'#3B82F6', text:'#93C5FD' };
+    var s = parseInt(n.score)||0;
+    if ((n.rel==='corr'||n.rel==='none') && s>=7) return { fill:'#2a1010', stroke:'#EF4444', text:'#FCA5A5' };
+    if (n.rel==='causal'||n.rel==='both') return { fill:'#0d2018', stroke:'#10B981', text:'#6EE7B7' };
+    if (n.rel==='corr') return { fill:'#261f08', stroke:'#F59E0B', text:'#FCD34D' };
+    return { fill:'#1a1f2a', stroke:'#4B5563', text:'#9CA3AF' };
+  }
+
+  function rl(n) {
+    if (n.id==='root') return '';
+    var m = {causal:'\u56e0\u679c\u3042\u308a', both:'\u56e0\u679c+\u76f8\u95a2', corr:'\u76f8\u95a2\u306e\u307f', none:'\u672a\u8a2d\u5b9a'};
+    return m[n.rel] || '\u672a\u8a2d\u5b9a';
+  }
+
+  function dn(col, ci) {
+    var totalRows = col.length;
+    var startY = (svgH - totalRows * ROW_H) / 2 + ROW_H / 2;
+    return col.map(function(n, i) {
+      var x = PAD + ci * COL_W + (COL_W - BOX_W) / 2;
+      var y = startY + i * ROW_H - BOX_H / 2;
+      return { n:n, x:x, y:y, cx:x+BOX_W/2, cy:y+BOX_H/2, c:nc(n), sc:parseInt(n.score)||0, rl:rl(n) };
+    });
+  }
+
+  var d0 = dn(col0, 0), d1 = dn(col1, 1), d2 = dn(col2, 2);
+
+  var edges = '';
+  d0.forEach(function(src){
+    d1.forEach(function(dst){
+      edges += '<line x1="'+(src.cx+BOX_W/2)+'" y1="'+src.cy+'" x2="'+(dst.cx-BOX_W/2)+'" y2="'+dst.cy+'" stroke="#2d3748" stroke-width="1.5"/>';
+    });
+  });
+  d1.forEach(function(src){
+    var kids = src.n.children || [];
+    d2.forEach(function(dst){
+      if (kids.some(function(k){ return k.id===dst.n.id; }))
+        edges += '<line x1="'+(src.cx+BOX_W/2)+'" y1="'+src.cy+'" x2="'+(dst.cx-BOX_W/2)+'" y2="'+dst.cy+'" stroke="#2d3748" stroke-width="1.5"/>';
+    });
+  });
+
+  function rb(d) {
+    var label = (d.n.emoji||'') + ' ' + (d.n.name||'?').slice(0,10);
+    var o = '<rect x="'+d.x+'" y="'+d.y+'" width="'+BOX_W+'" height="'+BOX_H+'" rx="8" fill="'+d.c.fill+'" stroke="'+d.c.stroke+'" stroke-width="1.5"/>';
+    o += '<text x="'+d.cx+'" y="'+(d.y+20)+'" text-anchor="middle" font-size="12" font-weight="bold" fill="'+d.c.text+'" font-family="Arial,sans-serif">'+label+'</text>';
+    if (d.rl) o += '<text x="'+d.cx+'" y="'+(d.y+36)+'" text-anchor="middle" font-size="10" fill="'+d.c.stroke+'" font-family="monospace">'+d.rl+'</text>';
+    if (d.sc) o += '<text x="'+d.cx+'" y="'+(d.y+50)+'" text-anchor="middle" font-size="9" fill="'+d.c.text+'" opacity="0.75" font-family="monospace">'+d.sc+'/10</text>';
+    return o;
+  }
+
+  var allBoxes = d0.concat(d1).concat(d2).map(rb).join('');
+  var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="'+svgW+'" height="'+svgH+'" style="background:#0D1117;border-radius:12px;display:block;margin:0 auto">'
+    + '<text x="'+(PAD+COL_W*0+COL_W/2)+'" y="18" text-anchor="middle" font-size="9" fill="#4B5563" font-family="monospace">GOAL</text>'
+    + '<text x="'+(PAD+COL_W*1+COL_W/2)+'" y="18" text-anchor="middle" font-size="9" fill="#4B5563" font-family="monospace">LEVEL 1</text>'
+    + '<text x="'+(PAD+COL_W*2+COL_W/2)+'" y="18" text-anchor="middle" font-size="9" fill="#4B5563" font-family="monospace">LEVEL 2</text>'
+    + edges + allBoxes + '</svg>';
+
+  function tr(n, bg) {
+    var s = parseInt(n.score)||0;
+    var rm = {none:'\u672a\u8a2d\u5b9a', causal:'\u2705 \u56e0\u679c\u3042\u308a', corr:'\uff5e \u76f8\u95a2\u306e\u307f', both:'\u26a1 \u56e0\u679c+\u76f8\u95a2'};
+    var isBot = (n.rel==='corr'||n.rel==='none') && s>=7;
+    var j = isBot ? '<span style="color:#EF4444;font-weight:700">\u26a0 BOTTLENECK</span>'
+      : (n.rel==='causal'||n.rel==='both') ? '<span style="color:#10B981">\u65bd\u7b56\u52b9\u679c\u25ce</span>'
+      : n.rel==='corr' ? '<span style="color:#F59E0B">\u8981\u56e0\u691c\u8a3c</span>'
+      : '<span style="color:#6B7280">\u672a\u8a55\u4fa1</span>';
+    return '<tr style="background:'+bg+'"><td style="padding:8px 12px">'+(n.emoji||'')+' '+n.name+'</td>'
+      +'<td style="padding:8px 12px;text-align:center">'+(rm[n.rel]||'\u672a\u8a2d\u5b9a')+'</td>'
+      +'<td style="padding:8px 12px;text-align:center">'+(s||'&mdash;')+'</td>'
+      +'<td style="padding:8px 12px;text-align:center">'+j+'</td></tr>';
+  }
+
+  var l1Rows = col1.map(function(n,i){ return tr(n, i%2===0?'#161B22':'#0D1117'); }).join('');
+  var l2Rows = col2.map(function(n,i){ return tr(n, i%2===0?'#161B22':'#0D1117'); }).join('');
+
+  var ins = [];
+  if (bottlenecks.length)
+    ins.push('<li style="color:#FCA5A5;margin-bottom:10px"><strong style="color:#EF4444">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af '+bottlenecks.length+'\u4ef6</strong>\uff1a'+bottlenecks.map(function(n){return n.name;}).join('\u30fb')+' \u306f\u5f71\u97ff\u5ea6\u304c\u9ad8\u3044\u306b\u3082\u304b\u304b\u308f\u3089\u305a\u56e0\u679c\u95a2\u4fc2\u304c\u672a\u78ba\u8a8d\u3002\u65bd\u7b56\u524d\u306b\u56e0\u679c\u691c\u8a3c\uff08A/B\u30c6\u30b9\u30c8\u30fb\u56de\u5e30\u5206\u6790\uff09\u3092\u5b9f\u65bd\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
+  if (causals.length) {
+    var top = causals.slice().sort(function(a,b){ return (parseInt(b.score)||0)-(parseInt(a.score)||0); })[0];
+    ins.push('<li style="color:#6EE7B7;margin-bottom:10px"><strong style="color:#10B981">\u6700\u512a\u5148\u65bd\u7b56\u5019\u88dc</strong>\uff1a\u56e0\u679c\u78ba\u8a8d\u6e08\u307f\u306e\u3046\u3061\u3001\u5f71\u97ff\u5ea6\u6700\u9ad8\u306f <strong>'+(top.emoji||'')+' '+top.name+'\uff08'+(top.score||'?')+'/10\uff09</strong>\u3002\u76f4\u63a5\u6539\u5584\u65bd\u7b56\u306eROI\u304c\u6700\u3082\u9ad8\u3044\u898b\u8fbc\u307f\u3067\u3059\u3002</li>');
+  }
+  if (corrs.length && !bottlenecks.length)
+    ins.push('<li style="color:#FCD34D;margin-bottom:10px"><strong style="color:#F59E0B">\u76f8\u95a2\u6307\u6a19\u306e\u6ce8\u610f\u70b9</strong>\uff1a'+corrs.map(function(n){return n.name;}).join('\u30fb')+' \u306f\u76f8\u95a2\u306e\u307f\u78ba\u8a8d\u3002\u80cc\u5f8c\u306e\u5171\u901a\u56e0\u5b50\u3092\u7279\u5b9a\u3057\u306a\u3044\u307e\u307e\u65bd\u7b56\u3092\u6253\u3064\u3068\u30b3\u30b9\u30c8\u304c\u7121\u99c4\u306b\u306a\u308b\u30ea\u30b9\u30af\u304c\u3042\u308a\u307e\u3059\u3002</li>');
+  if (!ins.length)
+    ins.push('<li style="color:#9CA3AF">\u307e\u3060\u95a2\u4fc2\u6027\u304c\u5165\u529b\u3055\u308c\u3066\u3044\u307e\u305b\u3093\u3002\u5404\u6307\u6a19\u306e\u300c\u58f2\u4e0a\u3068\u306e\u95a2\u4fc2\u300d\u3092\u8a2d\u5b9a\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
+
+  var formulaLine = col1.map(function(n){ return n.name||'?'; }).join(' \u00d7 ');
+
+  var css = '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{background:#0D1117;color:#F0F6FF;font-family:Arial,sans-serif;padding:40px 32px 80px;max-width:900px;margin:0 auto}'
+    + 'h1{font-size:24px;font-weight:700;margin-bottom:4px}'
+    + '.meta{font-size:12px;color:#6B7280;font-family:monospace;margin-bottom:28px}'
+    + 'h2{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;font-family:monospace;margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid #21262d}'
+    + 'table{width:100%;border-collapse:collapse;font-size:13px}'
+    + 'th{background:#161B22;color:#8B949E;font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;padding:8px 12px;text-align:left;border-bottom:1px solid #30363D}'
+    + 'td{border-bottom:1px solid #21262d}'
+    + 'ul{list-style:none;padding:0}'
+    + '.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}'
+    + '.kpi{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:14px;text-align:center}'
+    + '.kpi .num{font-size:28px;font-weight:700;font-family:monospace;line-height:1}'
+    + '.kpi .lbl{font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;margin-top:4px;font-family:monospace}'
+    + '.insight-box{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:18px 20px}'
+    + '.formula{font-family:monospace;font-size:14px;color:#3B82F6;background:#0d1d3d;border:1px solid #1e3a6e;border-radius:6px;padding:10px 16px;margin-bottom:24px}'
+    + '.print-btn{display:inline-flex;align-items:center;gap:6px;background:#3B82F6;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:24px}'
+    + '@media print{body{background:#fff;color:#111}.kpi{background:#f5f5f5}.insight-box{background:#f9f9f9}.print-btn{display:none}}';
+
+  var html = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>\u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</title><style>'+css+'</style></head><body>'
+    + '<button class="print-btn" onclick="window.print()">\ud83d\udda8 \u5370\u523a / PDF\u4fdd\u5b58</button>'
+    + '<h1>\ud83d\udcca \u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</h1>'
+    + '<div class="meta">\u751f\u6210\u65e5\u6642: '+date+'</div>'
+    + '<div class="formula">\u58f2\u4e0a = '+formulaLine+'</div>'
+    + '<div class="kpi-grid">'
+    + '<div class="kpi"><div class="num" style="color:#EF4444">'+bottlenecks.length+'</div><div class="lbl">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af</div></div>'
+    + '<div class="kpi"><div class="num" style="color:#10B981">'+causals.length+'</div><div class="lbl">\u56e0\u679c\u78ba\u8a8d\u6e08</div></div>'
+    + '<div class="kpi"><div class="num" style="color:#F59E0B">'+corrs.length+'</div><div class="lbl">\u76f8\u95a2\u306e\u307f</div></div>'
+    + '</div>'
+    + '<h2>\u30ed\u30b8\u30c3\u30af\u30c4\u30ea\u30fc</h2>'+svgStr
+    + '<h2>Level 1 \u6307\u6a19\u4e00\u89a7</h2>'
+    + '<table><thead><tr><th>\u6307\u6a19</th><th>\u58f2\u4e0a\u3068\u306e\u95a2\u4fc2</th><th>\u5f71\u97ff\u5ea6</th><th>\u5224\u5b9a</th></tr></thead><tbody>'+l1Rows+'</tbody></table>'
+    + '<h2>Level 2 \u6307\u6a19\u4e00\u89a7</h2>'
+    + '<table><thead><tr><th>\u6307\u6a19</th><th>\u58f2\u4e0a\u3068\u306e\u95a2\u4fc2</th><th>\u5f71\u97ff\u5ea6</th><th>\u5224\u5b9a</th></tr></thead><tbody>'+l2Rows+'</tbody></table>'
+    + '<h2>\ud83d\udca1 \u30a4\u30f3\u30b5\u30a4\u30c8\u30fb\u30a2\u30af\u30b7\u30e7\u30f3\u63d0\u6848</h2>'
+    + '<div class="insight-box"><ul>'+ins.join('')+'</ul></div>'
+    + '</body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+}
+
+renderTree();
+</script>
+</body>
+</html>
