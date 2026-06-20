@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高性能・ロジックツリーシミュレーター</title>
+<title>タイトル機能付き・ロジックツリーシミュレーター</title>
 <style>
 :root{
   --bg:#090D13;       
@@ -14,16 +14,28 @@
   --blue-glow:#388BFD;
   --card-bg:#1F242E;  
   --line-color:#30363D;
+  --zoom-scale: 1; 
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
 
-/* ── 印刷時のレイアウト制御 ── */
+/* ── 📄 印刷・PDF出力用の制御（タイトルを残してコントロールだけ消す） ── */
 @media print {
-  body { padding: 0; background: var(--bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  header, .panel, .canvas-header { display: none !important; }
-  .layout { display: block !important; height: auto !important; }
-  .tree-canvas { border: none !important; padding: 0 !important; overflow: visible !important; }
+  @page {
+    size: landscape; 
+    margin: 15mm 10mm;    
+  }
+  body { 
+    padding: 0; 
+    background: var(--bg) !important; 
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact; 
+  }
+  header, .panel, .canvas-controls { display: none !important; } /* コントロール類だけ非表示 */
+  .canvas-header { margin-bottom: 40px; } /* タイトル下の余白を広めに */
+  .layout { display: block !important; height: auto !important; width: 100% !important; }
+  .tree-canvas { border: none !important; padding: 0 !important; overflow: visible !important; width: 100% !important; }
+  .tree-view-wrapper { overflow: visible !important; width: 100% !important; display: block !important; }
 }
 
 header{text-align:center;margin-bottom:20px}
@@ -33,19 +45,52 @@ header p{color:var(--muted);font-size:12px;margin-top:4px}
 .layout{display:grid;grid-template-columns:350px 1fr;gap:20px;max-width:1600px;margin:0 auto;height:calc(100vh - 100px)}
 @media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}}
 
+/* ── 左側：入力パネル ── */
 .panel{background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column}
-.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-family:monospace;text-transform:uppercase}
-textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:14px;resize:none;outline:none;line-height:1.6;min-height:400px}
+.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;font-family:monospace;text-transform:uppercase}
+
+/* タイトル入力欄のスタイル */
+#title-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 20px;
+  transition: border-color 0.2s;
+}
+#title-input:focus { border-color: var(--blue-glow); }
+
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:14px;resize:none;outline:none;line-height:1.6;min-height:300px}
 textarea:focus{border-color:var(--blue-glow)}
 
 /* ── 右側：ツリー表示キャンバス ── */
 .tree-canvas{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px 40px 40px;overflow:auto;display:flex;flex-direction:column;position:relative}
-.canvas-header{display:flex;justify-content:end;margin-bottom:20px;flex-shrink:0}
-.print-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+
+/* キャンバスヘッダー（タイトルと操作ボタン） */
+.canvas-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-shrink:0;gap:20px;border-bottom:1px solid rgba(48,54,61,0.5);padding-bottom:16px;}
+.canvas-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--text);}
+.canvas-controls{display:flex;align-items:center;gap:20px;}
+
+.zoom-ctrl{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.zoom-ctrl input[type="range"] { cursor: pointer; accent-color: var(--blue-glow); }
+#zoom-val { font-family: monospace; color: var(--text); min-width: 40px; }
+
+.print-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.2s;white-space:nowrap}
 .print-btn:hover{opacity:0.9}
 
-.tree-view-wrapper{flex:1;display:flex;align-items:center;justify-content:start}
-.tree-container{display:flex;flex-direction:column;justify-content:center}
+/* ツリーラッパー */
+.tree-view-wrapper{flex:1;display:flex;align-items:center;justify-content:start;overflow:auto}
+.tree-container{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  transform: scale(var(--zoom-scale)); 
+  transform-origin: left center;      
+  padding: 40px 0;
+}
 .tree-branch{display:flex;align-items:center;position:relative}
 
 /* ── カードのデザイン ── */
@@ -102,11 +147,14 @@ textarea:focus{border-color:var(--blue-glow)}
 
 <header>
   <h1>高性能・ロジックツリーシミュレーター</h1>
-  <p>数値を入力すると自動計算してサブテキストに出力。親の文字に「+」があれば自動で足し算になります。</p>
+  <p>タイトルと数値を入力して、横長で美しいシミュレーションレポートを出力できます。</p>
 </header>
 
 <div class="layout">
   <div class="panel">
+    <div class="panel-title">// レポートのタイトル</div>
+    <input type="text" id="title-input" placeholder="タイトルを入力（例：派遣事業 売上因数分解）" value="派遣ビジネス 売上構造シミュレーション">
+    
     <div class="panel-title">// エディタ（「| 数値」で自動計算開始）</div>
     <textarea id="tree-input" spellcheck="false">💰 売上（円）
   [A] 月間稼働人数（人） [+]
@@ -124,8 +172,18 @@ textarea:focus{border-color:var(--blue-glow)}
   
   <div class="tree-canvas">
     <div class="canvas-header">
-      <button class="print-btn" onclick="window.print()">📄 PDF・印刷出力</button>
+      <div id="canvas-title-display" class="canvas-title"></div>
+      
+      <div class="canvas-controls">
+        <div class="zoom-ctrl">
+          <span>ツリーサイズ調整:</span>
+          <input type="range" id="zoom-slider" min="0.4" max="1.2" step="0.05" value="1">
+          <span id="zoom-val">100%</span>
+        </div>
+        <button class="print-btn" onclick="window.print()">📄 PDF・印刷出力</button>
+      </div>
     </div>
+    
     <div class="tree-view-wrapper">
       <div id="tree-output" class="tree-container"></div>
     </div>
@@ -135,12 +193,29 @@ textarea:focus{border-color:var(--blue-glow)}
 <script>
 const input = document.getElementById('tree-input');
 const output = document.getElementById('tree-output');
+const titleInput = document.getElementById('title-input');
+const canvasTitleDisplay = document.getElementById('canvas-title-display');
+const zoomSlider = document.getElementById('zoom-slider');
+const zoomVal = document.getElementById('zoom-val');
+
+// タイトルのリアルタイム連動
+titleInput.addEventListener('input', (e) => {
+  canvasTitleDisplay.textContent = e.target.value;
+});
+canvasTitleDisplay.textContent = titleInput.value; // 初期化
+
+// ズーム機能のイベント設定
+zoomSlider.addEventListener('input', (e) => {
+  const val = e.target.value;
+  document.documentElement.style.setProperty('--zoom-scale', val);
+  zoomVal.textContent = Math.round(val * 100) + '%';
+});
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// インデント解析と自動計算を行うコアロジック
+// インデント解析と自動計算
 function parseAndCalculateTree(text) {
   const lines = text.split('\n');
   const nodes = [];
@@ -176,23 +251,15 @@ function parseAndCalculateTree(text) {
     stack.push(node);
   });
 
-  // ボトムアップで数値を自動集計する関数
   function rollUp(node) {
     if (node.children.length === 0) return node.value;
-    
-    // 子ノードを先にすべて計算
     node.children.forEach(child => rollUp(child));
-    
-    // 自分がすでに直に入力された数値を持つならそれを優先
     if (node.value !== null) return node.value;
     
-    // 計算可能な子ノードの数値を集める
     const childValues = node.children.map(c => c.value).filter(v => v !== null);
     if (childValues.length === 0) return null;
     
-    // 親のタイトルに「+」が含まれるなら足し算、それ以外は掛け算
     const isAddition = node.name.includes('+') || node.name.includes('＋');
-    
     if (isAddition) {
       node.value = childValues.reduce((sum, v) => sum + v, 0);
     } else {
@@ -205,7 +272,7 @@ function parseAndCalculateTree(text) {
   return root.children;
 }
 
-// HTMLの生成
+// HTML生成
 function generateTreeHtml(nodes, isRoot = true) {
   let html = "";
   
@@ -215,13 +282,11 @@ function generateTreeHtml(nodes, isRoot = true) {
     const rootClass = isRoot ? "root-node" : "";
     const hasValClass = node.value !== null ? "has-val" : "";
     
-    // サブテキストの決定（自動計算された数値があればそちらを優先）
     let subtitle = node.customSub || "未設定";
     if (node.value !== null) {
       if (Number.isInteger(node.value)) {
         subtitle = node.value.toLocaleString();
       } else {
-        // 小数の場合は、最大小数点第4位まで表示
         subtitle = node.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
       }
     }
