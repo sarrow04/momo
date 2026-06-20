@@ -5,92 +5,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ボトルネック因数分解ツール</title>
 <style>
-:root {
-  --bg:#0D1117; --surface:#161B22; --border:#30363D;
-  --text:#F0F6FF; --muted:#8B949E;
-  --blue:#3B82F6; --green:#10B981; --yellow:#F59E0B; --red:#EF4444;
+:root{
+  --bg:#0D1117;--surface:#161B22;--border:#30363D;
+  --text:#F0F6FF;--muted:#6B7280;
+  --blue:#3B82F6;--green:#10B981;--yellow:#F59E0B;--red:#EF4444;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;min-height:100vh;padding:28px 16px 80px}
-header{text-align:center;margin-bottom:40px}
-header .label{font-family:monospace;font-size:11px;letter-spacing:.2em;color:var(--blue);text-transform:uppercase;margin-bottom:10px}
-header h1{font-size:clamp(20px,4vw,34px);font-weight:700;letter-spacing:-.02em;line-height:1.2}
-header p{color:var(--muted);font-size:13px;margin-top:8px;max-width:460px;margin-inline:auto;line-height:1.6}
-.report-btn{display:inline-flex;align-items:center;gap:7px;margin-top:16px;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',sans-serif;min-height:100vh;padding:28px 16px 80px}
+header{text-align:center;margin-bottom:36px}
+header .label{font-family:monospace;font-size:11px;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:8px}
+header h1{font-size:clamp(20px,3.5vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.2}
+header p{color:var(--muted);font-size:13px;margin-top:8px;max-width:440px;margin-inline:auto;line-height:1.6}
+.report-btn{display:inline-flex;align-items:center;gap:7px;margin-top:14px;background:var(--blue);color:#fff;border:none;border-radius:7px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
 .report-btn:hover{opacity:.85;transform:translateY(-1px)}
-.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1140px;margin:0 auto}
-@media(max-width:740px){.layout{grid-template-columns:1fr}}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:1160px;margin:0 auto}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
-.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;font-family:monospace}
+.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-family:monospace}
 
-/* ── LEVEL BLOCK ── */
-.level-block{margin-bottom:2px}
-.level-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;user-select:none}
-.level-header-label{font-family:monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
-.level-header-line{flex:1;height:1px;background:var(--border)}
-.toggle-icon{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0}
-.toggle-icon.collapsed{transform:rotate(-90deg)}
-.level-body{overflow:hidden;transition:max-height .25s ease,opacity .2s ease}
-.level-body.collapsed{max-height:0!important;opacity:0;pointer-events:none}
-
-/* ── NODE CARD ── */
-.node-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;transition:border-color .2s,background .2s,box-shadow .25s}
-.node-card.bottleneck{border-color:var(--red);background:rgba(239,68,68,.12);box-shadow:0 0 14px rgba(239,68,68,.12)}
-.node-card.causal{border-color:var(--green);background:rgba(16,185,129,.1)}
-.node-card.correlational{border-color:var(--yellow);background:rgba(245,158,11,.1)}
-.node-name-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
-.node-emoji{font-size:13px}
-.node-name{flex:1;min-width:0}
-.node-name input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit}
-.node-name input::placeholder{color:var(--muted);font-weight:400}
-.node-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.ctrl-label{font-size:10px;color:var(--muted);font-family:monospace;flex-shrink:0}
-.rel-select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:11px;padding:3px 5px;border-radius:4px;outline:none;cursor:pointer;font-family:monospace}
-.rel-select:focus{border-color:var(--blue)}
-.score-input{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:11px;padding:3px 5px;border-radius:4px;outline:none;width:50px;font-family:monospace}
-.score-input:focus{border-color:var(--blue)}
-.badge{font-size:9px;font-family:monospace;padding:2px 5px;border-radius:4px;font-weight:700;margin-left:auto;flex-shrink:0;white-space:nowrap}
-.badge-bottleneck{background:rgba(239,68,68,.22);color:var(--red)}
+/* ── TREE ── */
+.tree-root{font-family:'Courier New',monospace;font-size:13px;line-height:1}
+.tree-node{position:relative}
+.node-row{display:flex;align-items:flex-start;gap:0;cursor:pointer;border-radius:6px;transition:background .12s;padding:2px 4px 2px 0;margin-bottom:1px}
+.node-row:hover{background:rgba(255,255,255,.04)}
+.node-prefix{white-space:pre;color:#374151;flex-shrink:0;line-height:24px;font-size:13px}
+.node-main{display:flex;align-items:center;gap:0;flex:1;min-width:0;border-radius:5px;padding:3px 6px;border-left:2px solid transparent;transition:border-color .15s,background .15s}
+.node-main.c-bottleneck{border-left-color:var(--red);background:rgba(239,68,68,.08)}
+.node-main.c-causal{border-left-color:var(--green);background:rgba(16,185,129,.07)}
+.node-main.c-corr{border-left-color:var(--yellow);background:rgba(245,158,11,.07)}
+.node-toggle{font-size:10px;color:var(--muted);margin-right:5px;flex-shrink:0;transition:transform .18s;line-height:18px;width:12px;text-align:center}
+.node-toggle.open{transform:rotate(0)}
+.node-toggle.closed{transform:rotate(-90deg)}
+.node-toggle.leaf{opacity:0;pointer-events:none}
+.node-label-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.node-name-input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;font-family:'Courier New',monospace;outline:none;min-width:60px;width:auto;max-width:200px}
+.node-name-input::placeholder{color:var(--muted);font-weight:400}
+.node-formula{color:var(--muted);font-size:11px;flex-shrink:0}
+.node-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0;white-space:nowrap}
+.badge-bottleneck{background:rgba(239,68,68,.2);color:var(--red)}
 .badge-causal{background:rgba(16,185,129,.18);color:var(--green)}
 .badge-corr{background:rgba(245,158,11,.18);color:var(--yellow)}
-.remove-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;transition:color .15s;flex-shrink:0}
-.remove-btn:hover{color:var(--red)}
-.add-btn{background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:6px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:monospace;transition:all .15s;margin-top:3px}
-.add-btn:hover{border-color:var(--blue);color:var(--blue)}
-.indent{padding-left:22px}
-
-/* ── ROOT CARD ── */
-.root-card{background:rgba(59,130,246,.07);border:1px solid var(--blue);border-radius:8px;padding:9px 12px;margin-bottom:10px}
-.root-card-name{font-size:15px;font-weight:700;color:var(--blue)}
-.root-card-sub{font-size:11px;color:var(--muted);font-family:monospace;margin-top:2px}
+.node-controls{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
+.ctrl-select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:2px 4px;border-radius:3px;outline:none;cursor:pointer;font-family:monospace}
+.ctrl-select:focus{border-color:var(--blue)}
+.ctrl-score{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:2px 4px;border-radius:3px;outline:none;width:40px;font-family:monospace}
+.ctrl-score:focus{border-color:var(--blue)}
+.node-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.act-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:3px;line-height:1;transition:color .12s,background .12s;font-family:monospace}
+.act-btn:hover{color:var(--text);background:rgba(255,255,255,.08)}
+.act-btn.del:hover{color:var(--red)}
+.children-wrap{overflow:hidden;transition:max-height .22s ease,opacity .18s ease}
+.children-wrap.collapsed{max-height:0!important;opacity:0;pointer-events:none}
 
 /* ── RESULT PANEL ── */
-.formula-bar{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:13px;color:var(--blue);margin-bottom:16px;white-space:nowrap;overflow-x:auto}
-.score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px}
-.score-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.formula-bar{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:monospace;font-size:13px;color:var(--blue);margin-bottom:14px;white-space:nowrap;overflow-x:auto}
+.score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
+.score-card{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px;text-align:center}
 .score-card .num{font-size:22px;font-weight:700;font-family:monospace;line-height:1}
-.num.red{color:var(--red)} .num.green{color:var(--green)} .num.yellow{color:var(--yellow)}
-.score-card .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;font-family:monospace}
-.result-section{margin-bottom:16px}
-.result-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-family:monospace;margin-bottom:8px}
-.result-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;font-size:12px;line-height:1.5}
+.num-red{color:var(--red)}.num-green{color:var(--green)}.num-yellow{color:var(--yellow)}
+.score-card .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;font-family:monospace}
+.result-section{margin-bottom:14px}
+.result-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-family:monospace;margin-bottom:7px}
+.result-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;margin-bottom:4px;font-size:12px;line-height:1.5}
 .result-item.is-bottleneck{border-color:var(--red)}
 .dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.dot-red{background:var(--red);box-shadow:0 0 5px var(--red)} .dot-green{background:var(--green)} .dot-yellow{background:var(--yellow)}
-.result-item strong{display:block;font-weight:600;margin-bottom:1px}
+.dot-red{background:var(--red);box-shadow:0 0 5px var(--red)}.dot-green{background:var(--green)}.dot-yellow{background:var(--yellow)}
+.result-item strong{display:block;font-weight:600;margin-bottom:1px;font-family:monospace}
 .result-item span{color:var(--muted);font-size:11px}
-.empty-state{color:var(--muted);font-size:12px;text-align:center;padding:28px 0;font-family:monospace;line-height:1.8}
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-family:monospace}
-.legend-dot{width:7px;height:7px;border-radius:50%}
+.empty-state{color:var(--muted);font-size:12px;text-align:center;padding:24px 0;font-family:monospace;line-height:1.8}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);font-family:monospace}
+.legend-dot{width:6px;height:6px;border-radius:50%}
 </style>
 </head>
 <body>
-
 <header>
   <div class="label">Fermi Bottleneck Finder</div>
   <h1>企業ボトルネック<br>因数分解ツール</h1>
-  <p>売上を最大3層に因数分解し、各要素の関係性と影響度を入力してボトルネックを特定します。</p>
+  <p>売上を最大5層に因数分解。関係性・影響度を入力してボトルネックを特定します。</p>
   <button class="report-btn" onclick="openReport()">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     ロジックツリーレポートを出力
@@ -99,523 +91,435 @@ header p{color:var(--muted);font-size:13px;margin-top:8px;max-width:460px;margin
 
 <div class="layout">
   <div class="panel">
-    <div class="panel-title">// 因数分解ツリー</div>
-    <div id="tree-container"></div>
+    <div class="panel-title">// ロジックツリー</div>
+    <div id="tree-root" class="tree-root"></div>
   </div>
   <div class="panel">
     <div class="panel-title">// 診断結果</div>
     <div class="formula-bar" id="formula-bar">売上 = ...</div>
     <div class="score-grid">
-      <div class="score-card"><div class="num red" id="cnt-bottleneck">0</div><div class="lbl">ボトルネック</div></div>
-      <div class="score-card"><div class="num green" id="cnt-causal">0</div><div class="lbl">因果あり</div></div>
-      <div class="score-card"><div class="num yellow" id="cnt-corr">0</div><div class="lbl">相関のみ</div></div>
+      <div class="score-card"><div class="num num-red" id="cnt-b">0</div><div class="lbl">ボトルネック</div></div>
+      <div class="score-card"><div class="num num-green" id="cnt-c">0</div><div class="lbl">因果あり</div></div>
+      <div class="score-card"><div class="num num-yellow" id="cnt-r">0</div><div class="lbl">相関のみ</div></div>
     </div>
-    <div class="result-section" id="bottleneck-section" style="display:none">
-      <div class="result-title">🔴 ボトルネック（要因果確認）</div>
-      <div id="bottleneck-list"></div>
-    </div>
-    <div class="result-section" id="causal-section" style="display:none">
-      <div class="result-title">🟢 因果確認済み — 施策効果が出やすい</div>
-      <div id="causal-list"></div>
-    </div>
-    <div class="result-section" id="corr-section" style="display:none">
-      <div class="result-title">🟡 相関のみ — 第三因子の可能性あり</div>
-      <div id="corr-list"></div>
-    </div>
+    <div class="result-section" id="sec-b" style="display:none"><div class="result-title">🔴 ボトルネック（要因果確認）</div><div id="list-b"></div></div>
+    <div class="result-section" id="sec-c" style="display:none"><div class="result-title">🟢 因果確認済み — 施策効果が出やすい</div><div id="list-c"></div></div>
+    <div class="result-section" id="sec-r" style="display:none"><div class="result-title">🟡 相関のみ — 第三因子の可能性あり</div><div id="list-r"></div></div>
     <div class="empty-state" id="empty-state">← 左でノードを設定すると<br>診断結果がここに表示されます</div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>ボトルネック</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>因果あり</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>相関のみ</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--muted)"></div>未設定</div>
     </div>
   </div>
 </div>
 
 <script>
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 // STATE
-// ────────────────────────────────────────────
-var DEFAULT_TREE = {
-  id:'root', name:'売上', emoji:'💰', children:[
-    { id:'l1a', name:'顧客数', emoji:'👥', rel:'none', score:'', collapsed:false, children:[
-      { id:'l2a', name:'新規獲得数', emoji:'✨', rel:'none', score:'', collapsed:false, children:[
-        { id:'l3a', name:'広告流入数', emoji:'📣', rel:'none', score:'', collapsed:false, children:[] },
-        { id:'l3b', name:'CV率', emoji:'🎯', rel:'none', score:'', collapsed:false, children:[] }
+// ══════════════════════════════════════
+var idC = 100;
+function nid(){ return 'n'+(++idC); }
+
+var state = {
+  id:'root', name:'売上（円）', formula:'= A × B', rel:'none', score:'', open:true, children:[
+    { id:'l1a', name:'[A] 月間稼働人数（人）', formula:'= ① + ②', rel:'none', score:'', open:true, children:[
+      { id:'l2a', name:'【① 新規稼働人数】', formula:'= 応募数 × 内定率', rel:'none', score:'', open:true, children:[
+        { id:'l3a', name:'新規応募数（人）', formula:'', rel:'none', score:'', open:true, children:[] },
+        { id:'l3b', name:'面談設定率（%）', formula:'', rel:'none', score:'', open:true, children:[] },
+        { id:'l3c', name:'成約率（%）', formula:'', rel:'none', score:'', open:true, children:[] }
       ]},
-      { id:'l2b', name:'リピート率', emoji:'🔄', rel:'none', score:'', collapsed:false, children:[] }
+      { id:'l2b', name:'【② 継続稼働人数】', formula:'= 前月稼働人数 × 更新率', rel:'none', score:'', open:true, children:[
+        { id:'l3d', name:'前月の稼働人数（人）', formula:'', rel:'none', score:'', open:true, children:[] },
+        { id:'l3e', name:'契約更新率（%）', formula:'', rel:'none', score:'', open:true, children:[] }
+      ]}
     ]},
-    { id:'l1b', name:'客単価', emoji:'💴', rel:'none', score:'', collapsed:false, children:[
-      { id:'l2c', name:'注文単価', emoji:'🛒', rel:'none', score:'', collapsed:false, children:[] },
-      { id:'l2d', name:'注文頻度(月)', emoji:'📅', rel:'none', score:'', collapsed:false, children:[] }
+    { id:'l1b', name:'[B] 1人あたり月間平均売上（円）', formula:'= ③ × ④', rel:'none', score:'', open:true, children:[
+      { id:'l2c', name:'【③ 平均派遣時給（円）】', formula:'', rel:'none', score:'', open:true, children:[] },
+      { id:'l2d', name:'【④ 月間平均稼働時間（時間）】', formula:'= 所定 + 残業', rel:'none', score:'', open:true, children:[
+        { id:'l3f', name:'所定労働時間（時間）', formula:'', rel:'none', score:'', open:true, children:[] },
+        { id:'l3g', name:'平均残業時間（時間）', formula:'', rel:'none', score:'', open:true, children:[] }
+      ]}
     ]}
   ]
 };
 
-var idCounter = 100;
-function newId(){ return 'n'+(++idCounter); }
-function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
-var state = deepClone(DEFAULT_TREE);
-
-// collapse state per level (L1, L2, L3)
-var levelCollapsed = { 1:false, 2:false, 3:false };
-
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 // HELPERS
-// ────────────────────────────────────────────
-function getCardClass(n){
-  var s=parseInt(n.score)||0;
-  if((n.rel==='corr'||n.rel==='none')&&s>=7) return 'bottleneck';
-  if(n.rel==='causal'||n.rel==='both') return 'causal';
-  if(n.rel==='corr') return 'correlational';
-  return '';
-}
-function getBadgeHtml(n){
-  var s=parseInt(n.score)||0;
-  if((n.rel==='corr'||n.rel==='none')&&s>=7) return '<span class="badge badge-bottleneck">⚠ BOTTLENECK</span>';
-  if(n.rel==='causal'||n.rel==='both') return '<span class="badge badge-causal">因果確認済</span>';
-  if(n.rel==='corr') return '<span class="badge badge-corr">相関のみ</span>';
-  return '';
-}
+// ══════════════════════════════════════
 function findNode(id, node){
   if(node.id===id) return node;
   for(var i=0;i<(node.children||[]).length;i++){
-    var f=findNode(id,node.children[i]);
-    if(f) return f;
+    var f=findNode(id,node.children[i]); if(f) return f;
   }
   return null;
 }
-function removeFromTree(id, node){
+function removeNode(id, node){
   if(!node.children) return;
   var idx=node.children.findIndex(function(c){return c.id===id;});
   if(idx!==-1){node.children.splice(idx,1);return;}
-  node.children.forEach(function(c){removeFromTree(id,c);});
+  node.children.forEach(function(c){removeNode(id,c);});
 }
-function collectAll(node, acc){
-  acc=acc||[];
-  if(node.id!=='root') acc.push(node);
-  (node.children||[]).forEach(function(c){collectAll(c,acc);});
+function collectAll(node, acc, depth){
+  acc=acc||[]; depth=depth||0;
+  if(node.id!=='root') acc.push({node:node, depth:depth});
+  (node.children||[]).forEach(function(c){collectAll(c,acc,depth+1);});
   return acc;
 }
-function getDepth(id, node, d){
-  d=d||0;
-  if(node.id===id) return d;
-  for(var i=0;i<(node.children||[]).length;i++){
-    var r=getDepth(id,node.children[i],d+1);
-    if(r!==-1) return r;
-  }
-  return -1;
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getNodeClass(n){
+  var s=parseInt(n.score)||0;
+  if((n.rel==='corr'||n.rel==='none')&&s>=7) return 'c-bottleneck';
+  if(n.rel==='causal'||n.rel==='both') return 'c-causal';
+  if(n.rel==='corr') return 'c-corr';
+  return '';
+}
+function getBadge(n){
+  var s=parseInt(n.score)||0;
+  if((n.rel==='corr'||n.rel==='none')&&s>=7) return '<span class="node-badge badge-bottleneck">⚠ BN</span>';
+  if(n.rel==='causal'||n.rel==='both') return '<span class="node-badge badge-causal">因果</span>';
+  if(n.rel==='corr') return '<span class="node-badge badge-corr">相関</span>';
+  return '';
 }
 
-// ────────────────────────────────────────────
-// FIELD UPDATE (no full re-render)
-// ────────────────────────────────────────────
-function updateField(id, field, value){
-  var n=findNode(id,state);
-  if(!n) return;
-  n[field]=value;
-  // update card class + badge only
-  var card=document.querySelector('.node-card[data-id="'+id+'"]');
-  if(card){
-    card.className='node-card '+getCardClass(n);
-    var ob=card.querySelector('.badge');
-    if(ob) ob.remove();
-    var nr=card.querySelector('.node-name-row');
-    var rb=nr.querySelector('.remove-btn');
-    var bh=getBadgeHtml(n);
-    if(bh){var t=document.createElement('span');t.innerHTML=bh;nr.insertBefore(t.firstChild,rb);}
+// ══════════════════════════════════════
+// RENDER TREE  (recursive)
+// ══════════════════════════════════════
+// prefix chars like image: vertical bar "|" and branch "├─" "└─"
+function renderNode(node, container, depth, isLast, ancestorLines){
+  // ancestorLines: array of booleans — true = draw vertical line at that depth
+  depth = depth||0;
+  isLast = isLast===undefined ? true : isLast;
+  ancestorLines = ancestorLines||[];
+
+  var wrap = document.createElement('div');
+  wrap.className = 'tree-node';
+  wrap.dataset.id = node.id;
+
+  /* ── node row ── */
+  var row = document.createElement('div');
+  row.className = 'node-row';
+
+  // build prefix string
+  var prefix = '';
+  if(depth > 0){
+    for(var i=0;i<depth-1;i++){
+      prefix += ancestorLines[i] ? '\u2502   ' : '    ';
+    }
+    prefix += isLast ? '\u2514\u2500 ' : '\u251C\u2500 ';
   }
-  updateResults();
-}
 
-// ────────────────────────────────────────────
-// RENDER A NODE CARD
-// ────────────────────────────────────────────
-function makeNodeCard(n, depth){
-  var card=document.createElement('div');
-  card.className='node-card '+getCardClass(n);
-  card.dataset.id=n.id;
+  var prefixEl = document.createElement('span');
+  prefixEl.className = 'node-prefix';
+  prefixEl.style.lineHeight = '28px';
+  prefixEl.textContent = prefix;
+  row.appendChild(prefixEl);
 
-  // emoji options by depth
-  var emojiOpts=depth===1
-    ?['👥','💴','📦','🔁','📣','🏪','💡','⚙️']
-    :depth===2
-    ?['✨','🔄','🛒','📅','📊','🎯','💬','📌']
-    :['📣','🎯','🖥','📱','📍','💰','🔍','⭐'];
+  var main = document.createElement('div');
+  main.className = 'node-main ' + getNodeClass(node);
 
-  var emojiSel='<select class="rel-select emoji-sel" data-id="'+n.id+'" data-field="emoji" style="width:46px;text-align:center">';
-  emojiOpts.forEach(function(e){
-    emojiSel+='<option value="'+e+'"'+(n.emoji===e?' selected':'')+'>'+e+'</option>';
-  });
-  emojiSel+='</select>';
+  // toggle for root & non-leaf
+  var hasChildren = node.children && node.children.length > 0;
+  var toggleEl = document.createElement('span');
+  toggleEl.className = 'node-toggle ' + (hasChildren ? (node.open ? 'open' : 'closed') : 'leaf');
+  toggleEl.textContent = '▼';
+  main.appendChild(toggleEl);
 
-  card.innerHTML=
-    '<div class="node-name-row">'
-    +emojiSel
-    +'<div class="node-name"><input type="text" value="'+escHtml(n.name)+'" placeholder="指標名を入力" data-id="'+n.id+'" data-field="name"></div>'
-    +getBadgeHtml(n)
-    +'<button class="remove-btn" data-remove="'+n.id+'" title="削除">×</button>'
-    +'</div>'
-    +'<div class="node-controls">'
-    +'<span class="ctrl-label">関係:</span>'
-    +'<select class="rel-select" data-id="'+n.id+'" data-field="rel">'
-    +'<option value="none"'+(n.rel==='none'?' selected':'')+'>未設定</option>'
-    +'<option value="causal"'+(n.rel==='causal'?' selected':'')+'>✅ 因果あり</option>'
-    +'<option value="corr"'+(n.rel==='corr'?' selected':'')+'>〜 相関のみ</option>'
-    +'<option value="both"'+(n.rel==='both'?' selected':'')+'>⚡ 因果+相関</option>'
-    +'</select>'
-    +'<span class="ctrl-label" style="margin-left:4px">影響度:</span>'
-    +'<input type="number" min="1" max="10" class="score-input" placeholder="—" value="'+escHtml(n.score)+'" data-id="'+n.id+'" data-field="score">'
-    +'</div>';
+  // label wrap
+  var lblWrap = document.createElement('div');
+  lblWrap.className = 'node-label-wrap';
 
-  card.querySelector('[data-field="name"]').addEventListener('input',function(e){updateField(n.id,'name',e.target.value);});
-  card.querySelector('[data-field="emoji"]').addEventListener('change',function(e){
-    n.emoji=e.target.value;
+  var nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'node-name-input';
+  nameInput.value = node.name || '';
+  nameInput.placeholder = '指標名';
+  // auto-size
+  nameInput.style.width = Math.max(60, (node.name||'指標名').length * 8.5) + 'px';
+  nameInput.addEventListener('input', function(e){
+    node.name = e.target.value;
+    e.target.style.width = Math.max(60, e.target.value.length * 8.5 + 10) + 'px';
     updateResults();
   });
-  card.querySelector('[data-field="rel"]').addEventListener('change',function(e){updateField(n.id,'rel',e.target.value);});
-  card.querySelector('[data-field="score"]').addEventListener('input',function(e){updateField(n.id,'score',e.target.value);});
-  card.querySelector('[data-remove]').addEventListener('click',function(){
-    removeFromTree(n.id,state);
-    renderTree();
-  });
-  return card;
-}
+  lblWrap.appendChild(nameInput);
 
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ────────────────────────────────────────────
-// MAKE COLLAPSIBLE LEVEL BLOCK
-// ────────────────────────────────────────────
-function makeLevelBlock(levelNum, labelText, renderBodyFn){
-  var block=document.createElement('div');
-  block.className='level-block';
 
-  var header=document.createElement('div');
-  header.className='level-header';
+  main.appendChild(lblWrap);
 
-  var lbl=document.createElement('span');
-  lbl.className='level-header-label';
-  lbl.textContent=labelText;
-
-  var line=document.createElement('span');
-  line.className='level-header-line';
-
-  var icon=document.createElement('span');
-  icon.className='toggle-icon'+(levelCollapsed[levelNum]?' collapsed':'');
-  icon.textContent='▼';
-
-  header.appendChild(lbl);
-  header.appendChild(line);
-  header.appendChild(icon);
-
-  var body=document.createElement('div');
-  body.className='level-body'+(levelCollapsed[levelNum]?' collapsed':'');
-  // set max-height after content added
-  renderBodyFn(body);
-
-  // measure natural height and set
-  if(!levelCollapsed[levelNum]){
-    requestAnimationFrame(function(){
-      body.style.maxHeight=body.scrollHeight+'px';
-    });
-  } else {
-    body.style.maxHeight='0px';
+  // badge
+  if(depth > 0){
+    var badgeEl = document.createElement('span');
+    badgeEl.innerHTML = getBadge(node);
+    badgeEl.dataset.badge = node.id;
+    main.appendChild(badgeEl);
   }
 
-  header.addEventListener('click',function(){
-    levelCollapsed[levelNum]=!levelCollapsed[levelNum];
-    if(levelCollapsed[levelNum]){
-      body.style.maxHeight=body.scrollHeight+'px'; // lock before collapsing
-      requestAnimationFrame(function(){
-        body.style.maxHeight='0px';
-        body.style.opacity='0';
-        body.classList.add('collapsed');
-        icon.classList.add('collapsed');
-      });
-    } else {
-      body.classList.remove('collapsed');
-      icon.classList.remove('collapsed');
-      body.style.opacity='1';
-      body.style.maxHeight=body.scrollHeight+300+'px';
+  // controls (only non-root)
+  if(depth > 0){
+    var ctrl = document.createElement('div');
+    ctrl.className = 'node-controls';
+
+    var relSel = document.createElement('select');
+    relSel.className = 'ctrl-select';
+    [['none','未設定'],['causal','✅因果'],['corr','〜相関'],['both','⚡両方']].forEach(function(o){
+      var opt = document.createElement('option');
+      opt.value = o[0]; opt.textContent = o[1];
+      if(node.rel===o[0]) opt.selected = true;
+      relSel.appendChild(opt);
+    });
+    relSel.addEventListener('change', function(e){
+      node.rel = e.target.value;
+      refreshCard(node, main, badgeEl);
+      updateResults();
+    });
+    ctrl.appendChild(relSel);
+
+    var scoreIn = document.createElement('input');
+    scoreIn.type = 'number'; scoreIn.min='1'; scoreIn.max='10';
+    scoreIn.className = 'ctrl-score';
+    scoreIn.value = node.score || '';
+    scoreIn.placeholder = '—';
+    scoreIn.title = '影響度 1-10';
+    scoreIn.addEventListener('input', function(e){
+      node.score = e.target.value;
+      refreshCard(node, main, badgeEl);
+      updateResults();
+    });
+    ctrl.appendChild(scoreIn);
+    main.appendChild(ctrl);
+  }
+
+  // action buttons
+  var acts = document.createElement('div');
+  acts.className = 'node-actions';
+
+  if(depth < 5){
+    var addBtn = document.createElement('button');
+    addBtn.className = 'act-btn';
+    addBtn.title = '子ノードを追加';
+    addBtn.textContent = '+';
+    addBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      node.children = node.children || [];
+      node.children.push({id:nid(),name:'',formula:'',rel:'none',score:'',open:true,children:[]});
+      node.open = true;
+      renderTree();
+    });
+    acts.appendChild(addBtn);
+  }
+
+  if(depth > 0){
+    var delBtn = document.createElement('button');
+    delBtn.className = 'act-btn del';
+    delBtn.title = '削除';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      removeNode(node.id, state);
+      renderTree();
+    });
+    acts.appendChild(delBtn);
+  }
+  main.appendChild(acts);
+  row.appendChild(main);
+  wrap.appendChild(row);
+
+  // toggle click
+  row.addEventListener('click', function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='BUTTON') return;
+    if(!hasChildren) return;
+    node.open = !node.open;
+    toggleEl.className = 'node-toggle ' + (node.open ? 'open' : 'closed');
+    var cw = wrap.querySelector(':scope > .children-wrap');
+    if(cw){
+      if(node.open){
+        cw.classList.remove('collapsed');
+        cw.style.maxHeight = cw.scrollHeight + 600 + 'px';
+        cw.style.opacity = '1';
+      } else {
+        cw.style.maxHeight = cw.scrollHeight + 'px';
+        requestAnimationFrame(function(){
+          cw.style.maxHeight = '0px';
+          cw.style.opacity = '0';
+          cw.classList.add('collapsed');
+        });
+      }
     }
   });
 
-  block.appendChild(header);
-  block.appendChild(body);
-  return block;
+  // children
+  if(hasChildren){
+    var childrenWrap = document.createElement('div');
+    childrenWrap.className = 'children-wrap' + (node.open ? '' : ' collapsed');
+    childrenWrap.style.maxHeight = node.open ? '9999px' : '0px';
+    childrenWrap.style.opacity = node.open ? '1' : '0';
+
+    var newAncestorLines = ancestorLines.concat([!isLast]);
+    node.children.forEach(function(child, i){
+      var childIsLast = (i === node.children.length - 1);
+      renderNode(child, childrenWrap, depth+1, childIsLast, newAncestorLines);
+    });
+    wrap.appendChild(childrenWrap);
+  }
+
+  container.appendChild(wrap);
 }
 
-// ────────────────────────────────────────────
-// RENDER TREE
-// ────────────────────────────────────────────
+function refreshCard(node, mainEl, badgeEl){
+  mainEl.className = 'node-main ' + getNodeClass(node);
+  if(badgeEl) badgeEl.innerHTML = getBadge(node);
+}
+
 function renderTree(){
-  var container=document.getElementById('tree-container');
-  container.innerHTML='';
-
-  // ROOT
-  var rootDiv=document.createElement('div');
-  rootDiv.style.marginBottom='12px';
-  var rc=document.createElement('div');
-  rc.className='root-card';
-  rc.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">'+state.emoji+'</span><span class="root-card-name">'+escHtml(state.name)+'</span></div><div class="root-card-sub">因数分解の起点 — Level 0</div>';
-  rootDiv.appendChild(rc);
-  container.appendChild(rootDiv);
-
-  // ── LEVEL 1 ──
-  var l1Block=makeLevelBlock(1,'Level 1 — 第一分解',function(body){
-    state.children.forEach(function(n1){
-      body.appendChild(makeNodeCard(n1,1));
-
-      // ── LEVEL 2 inside L1 node ──
-      if(n1.children && n1.children.length || true){
-        var l2Wrap=document.createElement('div');
-        l2Wrap.className='indent';
-
-        var hasL2=n1.children && n1.children.length>0;
-        var l2Block=makeLevelBlock(2,'└ Level 2',function(b2){
-          (n1.children||[]).forEach(function(n2){
-            b2.appendChild(makeNodeCard(n2,2));
-
-            // ── LEVEL 3 inside L2 node ──
-            var l3Wrap=document.createElement('div');
-            l3Wrap.className='indent';
-
-            var l3Block=makeLevelBlock(3,'└ Level 3',function(b3){
-              (n2.children||[]).forEach(function(n3){
-                b3.appendChild(makeNodeCard(n3,3));
-              });
-              var addL3=document.createElement('button');
-              addL3.className='add-btn';
-              addL3.textContent='+ "'+escHtml(n2.name||'?')+'" を詳細分解';
-              addL3.onclick=function(){
-                n2.children.push({id:newId(),name:'',emoji:'🔍',rel:'none',score:'',collapsed:false,children:[]});
-                renderTree();
-              };
-              b3.appendChild(addL3);
-            });
-            l3Wrap.appendChild(l3Block);
-            b2.appendChild(l3Wrap);
-          });
-
-          var addL2=document.createElement('button');
-          addL2.className='add-btn';
-          addL2.textContent='+ "'+escHtml(n1.name||'?')+'" を分解';
-          addL2.onclick=function(){
-            n1.children.push({id:newId(),name:'',emoji:'📌',rel:'none',score:'',collapsed:false,children:[]});
-            renderTree();
-          };
-          b2.appendChild(addL2);
-        });
-
-        l2Wrap.appendChild(l2Block);
-        body.appendChild(l2Wrap);
-      }
-    });
-
-    var addL1=document.createElement('button');
-    addL1.className='add-btn';
-    addL1.textContent='+ 第一階層を追加';
-    addL1.onclick=function(){
-      state.children.push({id:newId(),name:'',emoji:'📊',rel:'none',score:'',collapsed:false,children:[]});
-      renderTree();
-    };
-    body.appendChild(addL1);
-  });
-
-  container.appendChild(l1Block);
+  var container = document.getElementById('tree-root');
+  container.innerHTML = '';
+  renderNode(state, container, 0, true, []);
   updateResults();
 }
 
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 // RESULTS
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 function updateResults(){
-  var nodes=collectAll(state);
-  var named=nodes.filter(function(n){return n.name.trim();});
+  var all = collectAll(state);
+  var named = all.filter(function(x){return x.node.name.trim();});
 
-  var l1=state.children.map(function(n){return n.name||'?';}).join(' × ');
-  document.getElementById('formula-bar').textContent='売上 = '+(l1||'...');
+  var l1 = state.children.map(function(n){return n.name||'?';}).join(' × ');
+  document.getElementById('formula-bar').textContent = '売上 = ' + (l1||'...');
 
-  var bottlenecks=[],causals=[],corrs=[];
-  named.forEach(function(n){
-    var s=parseInt(n.score)||0;
-    if((n.rel==='corr'||n.rel==='none')&&s>=7) bottlenecks.push(n);
-    else if(n.rel==='causal'||n.rel==='both') causals.push(n);
-    else if(n.rel==='corr') corrs.push(n);
+  var bottlenecks=[], causals=[], corrs=[];
+  named.forEach(function(x){
+    var n=x.node, s=parseInt(n.score)||0;
+    if((n.rel==='corr'||n.rel==='none')&&s>=7) bottlenecks.push(x);
+    else if(n.rel==='causal'||n.rel==='both') causals.push(x);
+    else if(n.rel==='corr') corrs.push(x);
   });
 
-  document.getElementById('cnt-bottleneck').textContent=bottlenecks.length;
-  document.getElementById('cnt-causal').textContent=causals.length;
-  document.getElementById('cnt-corr').textContent=corrs.length;
+  document.getElementById('cnt-b').textContent = bottlenecks.length;
+  document.getElementById('cnt-c').textContent = causals.length;
+  document.getElementById('cnt-r').textContent = corrs.length;
 
-  var hasAny=bottlenecks.length+causals.length+corrs.length>0;
-  document.getElementById('empty-state').style.display=hasAny?'none':'block';
+  var hasAny = bottlenecks.length+causals.length+corrs.length > 0;
+  document.getElementById('empty-state').style.display = hasAny ? 'none' : 'block';
 
-  renderList('bottleneck-section','bottleneck-list',bottlenecks,'bottleneck');
-  renderList('causal-section','causal-list',causals,'causal');
-  renderList('corr-section','corr-list',corrs,'corr');
+  renderResList('sec-b','list-b',bottlenecks,'b');
+  renderResList('sec-c','list-c',causals,'c');
+  renderResList('sec-r','list-r',corrs,'r');
 }
 
-function renderList(sid,lid,nodes,type){
-  var sec=document.getElementById(sid);
-  var lst=document.getElementById(lid);
-  if(!nodes.length){sec.style.display='none';return;}
-  sec.style.display='block';
-  lst.innerHTML='';
-  var dc={bottleneck:'dot-red',causal:'dot-green',corr:'dot-yellow'}[type];
+function renderResList(sid, lid, items, type){
+  var sec=document.getElementById(sid), lst=document.getElementById(lid);
+  if(!items.length){sec.style.display='none';return;}
+  sec.style.display='block'; lst.innerHTML='';
+  var dc={b:'dot-red',c:'dot-green',r:'dot-yellow'}[type];
   var mg={
-    bottleneck:function(n){return '影響度 '+(n.score||'?')+'/10 — 因果未確認。施策前に因果検証が必要。';},
-    causal:function(n){return '影響度 '+(n.score||'未入力')+'/10 — 施策効果が売上に直結しやすい。';},
-    corr:function(n){return '影響度 '+(n.score||'未入力')+'/10 — 第三因子の可能性あり。要因検証を推奨。';}
+    b:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'?')+'/10 — 因果未確認。施策前に因果検証を。';},
+    c:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'未入力')+'/10 — 直接施策のROIが高い。';},
+    r:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'未入力')+'/10 — 第三因子の可能性あり。要因検証を推奨。';}
   }[type];
-  var depth_label={1:'L1',2:'L2',3:'L3'};
-  nodes.forEach(function(n){
-    var d=getDepth(n.id,state,0);
-    var item=document.createElement('div');
-    item.className='result-item'+(type==='bottleneck'?' is-bottleneck':'');
-    item.innerHTML='<div class="dot '+dc+'"></div><div><strong>'+(n.emoji||'')+' '+escHtml(n.name)
-      +'<span style="color:var(--muted);font-weight:400;font-size:10px;margin-left:6px;font-family:monospace">'+(depth_label[d]||'')+' '+(d>0?'層':'')+'</span></strong>'
-      +'<span>'+mg(n)+'</span></div>';
-    lst.appendChild(item);
+  items.forEach(function(x){
+    var el=document.createElement('div');
+    el.className='result-item'+(type==='b'?' is-bottleneck':'');
+    el.innerHTML='<div class="dot '+dc+'"></div><div><strong>'+escH(x.node.name)+'</strong><span>'+mg(x)+'</span></div>';
+    lst.appendChild(el);
   });
 }
 
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 // REPORT
-// ────────────────────────────────────────────
+// ══════════════════════════════════════
 function openReport(){
-  var nodes=collectAll(state);
-  var named=nodes.filter(function(n){return n.name.trim();});
+  var all=collectAll(state);
+  var named=all.filter(function(x){return x.node.name.trim();});
   var date=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
 
-  var bottlenecks=[],causals=[],corrs=[];
-  named.forEach(function(n){
-    var s=parseInt(n.score)||0;
-    if((n.rel==='corr'||n.rel==='none')&&s>=7) bottlenecks.push(n);
-    else if(n.rel==='causal'||n.rel==='both') causals.push(n);
-    else if(n.rel==='corr') corrs.push(n);
+  var bots=[],caus=[],cors=[];
+  named.forEach(function(x){
+    var n=x.node,s=parseInt(n.score)||0;
+    if((n.rel==='corr'||n.rel==='none')&&s>=7) bots.push(x);
+    else if(n.rel==='causal'||n.rel==='both') caus.push(x);
+    else if(n.rel==='corr') cors.push(x);
   });
 
-  // Build column arrays
-  var col0=[state];
-  var col1=state.children;
-  var col2=state.children.reduce(function(a,c){return a.concat(c.children||[]);  },[]);
-  var col3=col2.reduce(function(a,c){return a.concat(c.children||[]);}, []);
-
-  var haL3=col3.length>0;
-  var numCols=haL3?4:3;
-  var COL_W=190, BOX_W=160, BOX_H=58, ROW_H=88, PAD=16;
-  var maxRows=Math.max(col0.length,col1.length,col2.length,haL3?col3.length:0);
-  var svgH=Math.max(maxRows*ROW_H+80, 240);
-  var svgW=COL_W*numCols+PAD*2;
-
-  function nc(n){
-    if(n.id==='root') return {fill:'#1a2744',stroke:'#3B82F6',text:'#93C5FD'};
-    var s=parseInt(n.score)||0;
-    if((n.rel==='corr'||n.rel==='none')&&s>=7) return {fill:'#2a1010',stroke:'#EF4444',text:'#FCA5A5'};
-    if(n.rel==='causal'||n.rel==='both') return {fill:'#0d2018',stroke:'#10B981',text:'#6EE7B7'};
-    if(n.rel==='corr') return {fill:'#261f08',stroke:'#F59E0B',text:'#FCD34D'};
-    return {fill:'#1a1f2a',stroke:'#4B5563',text:'#9CA3AF'};
-  }
-  function rl(n){
-    if(n.id==='root') return '';
-    var m={causal:'\u56e0\u679c\u3042\u308a',both:'\u56e0\u679c+\u76f8\u95a2',corr:'\u76f8\u95a2\u306e\u307f',none:'\u672a\u8a2d\u5b9a'};
-    return m[n.rel]||'\u672a\u8a2d\u5b9a';
-  }
-  function dn(col,ci){
-    var sr=(svgH-col.length*ROW_H)/2+ROW_H/2;
-    return col.map(function(n,i){
-      var x=PAD+ci*COL_W+(COL_W-BOX_W)/2;
-      var y=sr+i*ROW_H-BOX_H/2;
-      return {n:n,x:x,y:y,cx:x+BOX_W/2,cy:y+BOX_H/2,c:nc(n),sc:parseInt(n.score)||0,rl:rl(n)};
+  // build text tree for report
+  function buildTextTree(node, depth, isLast, ancestorLines){
+    depth=depth||0; isLast=isLast===undefined?true:isLast; ancestorLines=ancestorLines||[];
+    var prefix='';
+    if(depth>0){
+      for(var i=0;i<depth-1;i++) prefix+=ancestorLines[i]?'│   ':'    ';
+      prefix+=isLast?'└─ ':'├─ ';
+    }
+    var s=parseInt(node.score)||0;
+    var dot='';
+    if(node.id!=='root'){
+      if((node.rel==='corr'||node.rel==='none')&&s>=7) dot=' ⚠';
+      else if(node.rel==='causal'||node.rel==='both') dot=' ✅';
+      else if(node.rel==='corr') dot=' 〜';
+    }
+    var scoreStr=s?' ['+s+'/10]':'';
+    var fStr=node.formula?' '+node.formula:'';
+    var color='#F0F6FF';
+    if(node.id!=='root'){
+      if((node.rel==='corr'||node.rel==='none')&&s>=7) color='#FCA5A5';
+      else if(node.rel==='causal'||node.rel==='both') color='#6EE7B7';
+      else if(node.rel==='corr') color='#FCD34D';
+    }
+    var line='<div style="font-family:\'Courier New\',monospace;font-size:13px;line-height:26px;white-space:pre;color:'+color+'">'+
+      '<span style="color:#374151">'+prefix+'</span>'+
+      escH(node.name)+'<span style="color:#4B5563;font-size:11px">'+escH(fStr)+'</span>'+dot+scoreStr+
+      '</div>';
+    var childLines='';
+    (node.children||[]).forEach(function(c,i){
+      var cl=i===node.children.length-1;
+      childLines+=buildTextTree(c,depth+1,cl,ancestorLines.concat([!isLast]));
     });
+    return line+childLines;
   }
-  var d0=dn(col0,0),d1=dn(col1,1),d2=dn(col2,2),d3=haL3?dn(col3,3):[];
+  var treeHtml=buildTextTree(state,0,true,[]);
 
-  var edges='';
-  function addEdges(da,db){
-    da.forEach(function(src){
-      var kids=(src.n.children||[]);
-      db.forEach(function(dst){
-        if(kids.some(function(k){return k.id===dst.n.id;}))
-          edges+='<line x1="'+(src.cx+BOX_W/2)+'" y1="'+src.cy+'" x2="'+(dst.cx-BOX_W/2)+'" y2="'+dst.cy+'" stroke="#2d3748" stroke-width="1.5"/>';
-      });
-    });
-  }
-  // root→L1: connect root to all L1
-  d1.forEach(function(dst){
-    edges+='<line x1="'+(d0[0].cx+BOX_W/2)+'" y1="'+d0[0].cy+'" x2="'+(dst.cx-BOX_W/2)+'" y2="'+dst.cy+'" stroke="#2d3748" stroke-width="1.5"/>';
-  });
-  addEdges(d1,d2);
-  if(haL3) addEdges(d2,d3);
-
-  function rb(d){
-    var label=(d.n.emoji||'')+' '+(d.n.name||'?').slice(0,11);
-    var o='<rect x="'+d.x+'" y="'+d.y+'" width="'+BOX_W+'" height="'+BOX_H+'" rx="7" fill="'+d.c.fill+'" stroke="'+d.c.stroke+'" stroke-width="1.5"/>';
-    o+='<text x="'+d.cx+'" y="'+(d.y+20)+'" text-anchor="middle" font-size="12" font-weight="bold" fill="'+d.c.text+'" font-family="Arial,sans-serif">'+label+'</text>';
-    if(d.rl) o+='<text x="'+d.cx+'" y="'+(d.y+36)+'" text-anchor="middle" font-size="10" fill="'+d.c.stroke+'" font-family="monospace">'+d.rl+'</text>';
-    if(d.sc) o+='<text x="'+d.cx+'" y="'+(d.y+50)+'" text-anchor="middle" font-size="9" fill="'+d.c.text+'" opacity="0.7" font-family="monospace">'+d.sc+'/10</text>';
-    return o;
-  }
-  var allBoxes=d0.concat(d1).concat(d2).concat(d3).map(rb).join('');
-
-  var colLabels=['GOAL','LEVEL 1','LEVEL 2','LEVEL 3'].slice(0,numCols);
-  var colLabelSvg=colLabels.map(function(l,i){
-    return '<text x="'+(PAD+i*COL_W+COL_W/2)+'" y="16" text-anchor="middle" font-size="9" fill="#4B5563" font-family="monospace">'+l+'</text>';
-  }).join('');
-
-  var svgStr='<svg xmlns="http://www.w3.org/2000/svg" width="'+svgW+'" height="'+svgH+'" style="background:#0D1117;border-radius:10px;display:block;margin:0 auto">'+colLabelSvg+edges+allBoxes+'</svg>';
-
-  // table
-  function tr(n,bg,lvl){
-    var s=parseInt(n.score)||0;
-    var rm={none:'\u672a\u8a2d\u5b9a',causal:'\u2705 \u56e0\u679c',corr:'\uff5e \u76f8\u95a2',both:'\u26a1 \u56e0\u679c+\u76f8\u95a2'};
+  function tr(x,bg){
+    var n=x.node,s=parseInt(n.score)||0;
+    var rm={none:'\u672a\u8a2d\u5b9a',causal:'\u2705 \u56e0\u679c',corr:'\uff5e \u76f8\u95a2',both:'\u26a1 \u4e21\u65b9'};
     var isBot=(n.rel==='corr'||n.rel==='none')&&s>=7;
     var j=isBot?'<span style="color:#EF4444;font-weight:700">\u26a0 BOTTLENECK</span>'
       :(n.rel==='causal'||n.rel==='both')?'<span style="color:#10B981">\u65bd\u7b56\u52b9\u679c\u25ce</span>'
       :n.rel==='corr'?'<span style="color:#F59E0B">\u8981\u56e0\u691c\u8a3c</span>'
       :'<span style="color:#6B7280">\u672a\u8a55\u4fa1</span>';
-    return '<tr style="background:'+bg+'"><td style="padding:7px 10px"><span style="font-size:10px;color:#4B5563;font-family:monospace;margin-right:6px">L'+lvl+'</span>'+(n.emoji||'')+' '+n.name+'</td>'
+    return '<tr style="background:'+bg+'"><td style="padding:7px 10px"><span style="color:#4B5563;font-family:monospace;font-size:10px;margin-right:6px">L'+x.depth+'</span>'+escH(n.name)+'</td>'
       +'<td style="padding:7px 10px;text-align:center">'+(rm[n.rel]||'\u672a\u8a2d\u5b9a')+'</td>'
       +'<td style="padding:7px 10px;text-align:center">'+(s||'&mdash;')+'</td>'
       +'<td style="padding:7px 10px;text-align:center">'+j+'</td></tr>';
   }
-  var allRows='';
-  col1.forEach(function(n,i){allRows+=tr(n,i%2===0?'#161B22':'#0D1117',1);});
-  col2.forEach(function(n,i){allRows+=tr(n,i%2===0?'#1a1f28':'#131820',2);});
-  col3.forEach(function(n,i){allRows+=tr(n,i%2===0?'#161B22':'#0D1117',3);});
+  var allRows=named.map(function(x,i){return tr(x,i%2===0?'#161B22':'#0D1117');}).join('');
 
-  // insights
   var ins=[];
-  if(bottlenecks.length)
-    ins.push('<li style="color:#FCA5A5;margin-bottom:10px"><strong style="color:#EF4444">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af '+bottlenecks.length+'\u4ef6</strong>\uff1a'+bottlenecks.map(function(n){return n.name;}).join('\u30fb')+' \u306f\u5f71\u97ff\u5ea6\u304c\u9ad8\u3044\u306b\u3082\u304b\u304b\u308f\u3089\u305a\u56e0\u679c\u95a2\u4fc2\u304c\u672a\u78ba\u8a8d\u3002A/B\u30c6\u30b9\u30c8\u30fb\u56de\u5e30\u5206\u6790\u306a\u3069\u3067\u56e0\u679c\u691c\u8a3c\u3092\u5b9f\u65bd\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
-  if(causals.length){
-    var top=causals.slice().sort(function(a,b){return (parseInt(b.score)||0)-(parseInt(a.score)||0);})[0];
-    ins.push('<li style="color:#6EE7B7;margin-bottom:10px"><strong style="color:#10B981">\u6700\u512a\u5148\u65bd\u7b56\u5019\u88dc</strong>\uff1a\u56e0\u679c\u78ba\u8a8d\u6e08\u307f\u306e\u3046\u3061\u5f71\u97ff\u5ea6\u6700\u9ad8\u306f <strong>'+(top.emoji||'')+' '+top.name+'\uff08'+(top.score||'?')+'/10\uff09</strong>\u3002ROI\u6700\u5927\u306e\u65bd\u7b56\u5019\u88dc\u3067\u3059\u3002</li>');
+  if(bots.length)
+    ins.push('<li style="color:#FCA5A5;margin-bottom:10px"><strong style="color:#EF4444">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af '+bots.length+'\u4ef6</strong>\uff1a'+bots.map(function(x){return x.node.name;}).join('\u30fb')+' \u306f\u5f71\u97ff\u5ea6\u304c\u9ad8\u3044\u306b\u3082\u304b\u304b\u308f\u3089\u305a\u56e0\u679c\u95a2\u4fc2\u304c\u672a\u78ba\u8a8d\u3002A/B\u30c6\u30b9\u30c8\u30fb\u56de\u5e30\u5206\u6790\u3067\u56e0\u679c\u691c\u8a3c\u3092\u5b9f\u65bd\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
+  if(caus.length){
+    var top=caus.slice().sort(function(a,b){return (parseInt(b.node.score)||0)-(parseInt(a.node.score)||0);})[0];
+    ins.push('<li style="color:#6EE7B7;margin-bottom:10px"><strong style="color:#10B981">\u6700\u512a\u5148\u65bd\u7b56\u5019\u88dc</strong>\uff1a\u5f71\u97ff\u5ea6\u6700\u9ad8\u306f <strong>'+escH(top.node.name)+'\uff08'+(top.node.score||'?')+'/10\uff09</strong>\u3002\u76f4\u63a5\u6539\u5584\u65bd\u7b56\u306eROI\u304c\u6700\u3082\u9ad8\u3044\u898b\u8fbc\u307f\u3002</li>');
   }
-  if(corrs.length&&!bottlenecks.length)
-    ins.push('<li style="color:#FCD34D;margin-bottom:10px"><strong style="color:#F59E0B">\u76f8\u95a2\u6307\u6a19\u306e\u6ce8\u610f\u70b9</strong>\uff1a'+corrs.map(function(n){return n.name;}).join('\u30fb')+' \u306f\u76f8\u95a2\u306e\u307f\u78ba\u8a8d\u3002\u5171\u901a\u56e0\u5b50\u3092\u7279\u5b9a\u3057\u306a\u3044\u307e\u307e\u65bd\u7b56\u3092\u6253\u3064\u3068\u30b3\u30b9\u30c8\u304c\u7121\u99c4\u306b\u306a\u308b\u30ea\u30b9\u30af\u304c\u3042\u308a\u307e\u3059\u3002</li>');
-  if(!ins.length)
-    ins.push('<li style="color:#9CA3AF">\u307e\u3060\u95a2\u4fc2\u6027\u304c\u5165\u529b\u3055\u308c\u3066\u3044\u307e\u305b\u3093\u3002\u5404\u6307\u6a19\u306e\u300c\u95a2\u4fc2\u300d\u3092\u8a2d\u5b9a\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
+  if(cors.length&&!bots.length)
+    ins.push('<li style="color:#FCD34D;margin-bottom:10px"><strong style="color:#F59E0B">\u76f8\u95a2\u6307\u6a19\u306e\u6ce8\u610f\u70b9</strong>\uff1a'+cors.map(function(x){return x.node.name;}).join('\u30fb')+' \u306f\u76f8\u95a2\u306e\u307f\u78ba\u8a8d\u3002\u5171\u901a\u56e0\u5b50\u3092\u7279\u5b9a\u3057\u306a\u3044\u307e\u307e\u65bd\u7b56\u3092\u6253\u3064\u3068\u30b3\u30b9\u30c8\u304c\u7121\u99c4\u306b\u306a\u308b\u30ea\u30b9\u30af\u304c\u3042\u308a\u307e\u3059\u3002</li>');
+  if(!ins.length) ins.push('<li style="color:#9CA3AF">\u95a2\u4fc2\u6027\u304c\u5165\u529b\u3055\u308c\u3066\u3044\u307e\u305b\u3093\u3002</li>');
 
-  var formulaLine=col1.map(function(n){return n.name||'?';}).join(' \u00d7 ');
-
-  var css='*{box-sizing:border-box;margin:0;padding:0}body{background:#0D1117;color:#F0F6FF;font-family:Arial,sans-serif;padding:40px 28px 80px;max-width:960px;margin:0 auto}h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:11px;color:#6B7280;font-family:monospace;margin-bottom:24px}h2{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;font-family:monospace;margin:24px 0 10px;padding-bottom:7px;border-bottom:1px solid #21262d}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#161B22;color:#8B949E;font-size:9px;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;padding:7px 10px;text-align:left;border-bottom:1px solid #30363D}td{border-bottom:1px solid #21262d}ul{list-style:none;padding:0}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.kpi{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center}.kpi .num{font-size:26px;font-weight:700;font-family:monospace;line-height:1}.kpi .lbl{font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-family:monospace}.insight-box{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:16px 18px}.formula{font-family:monospace;font-size:13px;color:#3B82F6;background:#0d1d3d;border:1px solid #1e3a6e;border-radius:6px;padding:9px 14px;margin-bottom:20px}.print-btn{display:inline-flex;align-items:center;gap:6px;background:#3B82F6;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:20px}@media print{body{background:#fff;color:#111}.kpi{background:#f5f5f5}.insight-box{background:#f9f9f9}.print-btn{display:none}}';
+  var l1=state.children.map(function(n){return n.name||'?';}).join(' \u00d7 ');
+  var css='*{box-sizing:border-box;margin:0;padding:0}body{background:#0D1117;color:#F0F6FF;font-family:Arial,sans-serif;padding:40px 28px 80px;max-width:900px;margin:0 auto}h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:11px;color:#6B7280;font-family:monospace;margin-bottom:22px}h2{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;font-family:monospace;margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid #21262d}.tree-box{background:#0a0e14;border:1px solid #21262d;border-radius:8px;padding:16px 20px;overflow-x:auto;margin-bottom:4px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#161B22;color:#8B949E;font-size:9px;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;padding:7px 10px;text-align:left;border-bottom:1px solid #30363D}td{border-bottom:1px solid #21262d}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.kpi{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center}.kpi .num{font-size:26px;font-weight:700;font-family:monospace;line-height:1}.kpi .lbl{font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-family:monospace}.insight-box{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:16px 18px}ul{list-style:none;padding:0}.formula{font-family:monospace;font-size:13px;color:#3B82F6;background:#0d1d3d;border:1px solid #1e3a6e;border-radius:6px;padding:9px 14px;margin-bottom:18px}.print-btn{display:inline-flex;align-items:center;gap:6px;background:#3B82F6;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:20px}@media print{body{background:#fff;color:#111}.kpi{background:#f5f5f5}.insight-box{background:#f9f9f9}.print-btn{display:none}.tree-box{background:#f9f9f9;border-color:#ddd}}';
 
   var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>\u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</title><style>'+css+'</style></head><body>'
     +'<button class="print-btn" onclick="window.print()">\ud83d\udda8 \u5370\u523a / PDF\u4fdd\u5b58</button>'
     +'<h1>\ud83d\udcca \u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</h1>'
     +'<div class="meta">\u751f\u6210\u65e5\u6642: '+date+'</div>'
-    +'<div class="formula">\u58f2\u4e0a = '+formulaLine+'</div>'
+    +'<div class="formula">\u58f2\u4e0a = '+escH(l1)+'</div>'
     +'<div class="kpi-grid">'
-    +'<div class="kpi"><div class="num" style="color:#EF4444">'+bottlenecks.length+'</div><div class="lbl">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af</div></div>'
-    +'<div class="kpi"><div class="num" style="color:#10B981">'+causals.length+'</div><div class="lbl">\u56e0\u679c\u78ba\u8a8d\u6e08</div></div>'
-    +'<div class="kpi"><div class="num" style="color:#F59E0B">'+corrs.length+'</div><div class="lbl">\u76f8\u95a2\u306e\u307f</div></div>'
+    +'<div class="kpi"><div class="num" style="color:#EF4444">'+bots.length+'</div><div class="lbl">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af</div></div>'
+    +'<div class="kpi"><div class="num" style="color:#10B981">'+caus.length+'</div><div class="lbl">\u56e0\u679c\u78ba\u8a8d\u6e08</div></div>'
+    +'<div class="kpi"><div class="num" style="color:#F59E0B">'+cors.length+'</div><div class="lbl">\u76f8\u95a2\u306e\u307f</div></div>'
     +'</div>'
-    +'<h2>\u30ed\u30b8\u30c3\u30af\u30c4\u30ea\u30fc</h2>'+svgStr
-    +'<h2>\u6307\u6a19\u4e00\u89a7\uff08\u5168\u5c64\uff09</h2>'
-    +'<table><thead><tr><th>\u6307\u6a19</th><th>\u58f2\u4e0a\u3068\u306e\u95a2\u4fc2</th><th>\u5f71\u97ff\u5ea6</th><th>\u5224\u5b9a</th></tr></thead><tbody>'+allRows+'</tbody></table>'
+    +'<h2>\u30ed\u30b8\u30c3\u30af\u30c4\u30ea\u30fc</h2><div class="tree-box">'+treeHtml+'</div>'
+    +'<h2>\u6307\u6a19\u4e00\u89a7</h2>'
+    +'<table><thead><tr><th>\u5c64</th><th>\u6307\u6a19</th><th>\u5f71\u97ff\u5ea6</th><th>\u5224\u5b9a</th></tr></thead><tbody>'+allRows+'</tbody></table>'
     +'<h2>\ud83d\udca1 \u30a4\u30f3\u30b5\u30a4\u30c8\u30fb\u30a2\u30af\u30b7\u30e7\u30f3\u63d0\u6848</h2>'
     +'<div class="insight-box"><ul>'+ins.join('')+'</ul></div>'
     +'</body></html>';
@@ -628,7 +532,6 @@ function openReport(){
   setTimeout(function(){URL.revokeObjectURL(url);},5000);
 }
 
-// ── INIT ──
 renderTree();
 </script>
 </body>
