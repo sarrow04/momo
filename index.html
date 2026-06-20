@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNS投稿特化・横長ロジックツリージェネレーター</title>
+<title>画像ダウンロード対応・ロジックツリーシミュレーター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
   --bg:#090D13;       
@@ -14,25 +15,14 @@
   --blue-glow:#388BFD;
   --card-bg:#1F242E;  
   --line-color:#30363D;
-  --zoom-scale: 0.9; /* 初期状態から少しコンパクトに */
+  --zoom-scale: 0.9; 
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:16px}
 
-/* ── 📄 印刷・PDF時は、画面で見えている通りの横長を維持 ── */
-@media print {
-  @page { size: landscape; margin: 10mm; }
-  body { padding: 0; background: var(--bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  header, .panel, .canvas-controls-bar { display: none !important; } 
-  .layout { display: block !important; width: 100% !important; }
-  .tree-canvas { border: none !important; padding: 0 !important; overflow: visible !important; width: 100% !important; }
-}
-
 header{text-align:center;margin-bottom:16px}
 header h1{font-size:18px;font-weight:700}
-header p{color:var(--muted);font-size:11px;margin-top:2px}
 
-/* 2カラムレイアウト */
 .layout{display:grid;grid-template-columns:320px 1fr;gap:16px;max-width:1600px;margin:0 auto;height:calc(100vh - 80px)}
 @media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}}
 
@@ -45,10 +35,9 @@ header p{color:var(--muted);font-size:11px;margin-top:2px}
   padding: 8px 12px; font-size: 13px; outline: none; margin-bottom: 16px;
 }
 #title-input:focus { border-color: var(--blue-glow); }
-
 textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Courier New',monospace;font-size:12px;padding:12px;resize:none;outline:none;line-height:1.5;min-height:250px}
 
-/* ── 右側：SNS映えするツリー表示キャンバス ── */
+/* ── 右側：ツリー表示キャンバス ── */
 .tree-canvas{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;overflow:auto;display:flex;flex-direction:column;position:relative}
 
 /* 上部コントロール */
@@ -57,9 +46,12 @@ textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radiu
 .zoom-ctrl{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
 .zoom-ctrl input[type="range"] { cursor: pointer; accent-color: var(--blue-glow); width: 90px; }
 #zoom-val { font-family: monospace; color: var(--text); min-width: 35px; }
-.print-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;}
 
-/* ── スクショ用の外観（上がタイトル、右へツリーが伸びる） ── */
+/* ★ボタンをグリーンにして画像保存用に変更 */
+.download-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition: opacity 0.2s;}
+.download-btn:hover{opacity: 0.9;}
+
+/* ── 基本外観（スマホでは縦に並ぶが、画像化の瞬間は強制的に美しい横長になる） ── */
 .canvas-body { display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: start; }
 .title-zone { width: 100%; border-bottom: 1px solid rgba(48,54,61,0.2); padding-bottom: 8px; }
 .canvas-title { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
@@ -73,44 +65,49 @@ textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radiu
 }
 .tree-branch { display: flex; align-items: center; position: relative; }
 
-/* ── ★極限まで無駄を削ったコンパクト四角デザイン ── */
+/* ── 4角ボックス＆接続線のデザイン ── */
 .node-box {
   background: var(--card-bg); border: 1px solid var(--border); color: var(--text);
-  padding: 8px 12px; border-radius: 6px; 
-  min-width: 140px; max-width: 180px; /* 横幅を狭く */
-  text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  position: relative; z-index: 2; display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 12px; border-radius: 6px; min-width: 140px; max-width: 180px; 
+  text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2; display: flex; flex-direction: column; gap: 2px;
 }
-.node-box.root-node {
-  border: 1.5px solid var(--blue-glow); box-shadow: 0 0 10px rgba(56, 139, 253, 0.2);
-}
+.node-box.root-node { border: 1.5px solid var(--blue-glow); box-shadow: 0 0 10px rgba(56, 139, 253, 0.2); }
 .node-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node-sub { font-size: 10px; color: var(--blue-glow); font-weight: 700; font-family: monospace; }
 .node-box:not(.has-val) .node-sub { color: var(--muted); font-weight: 400; }
 
-/* 枝分かれの隙間を狭く設定 */
-.children-container {
-  display: flex; flex-direction: column;
-  gap: 12px;          /* 上下の箱の隙間（24px→12pxへ） */
-  padding-left: 24px; /* 左右の線の長さ（40px→24pxへ） */
-  position: relative;
-}
+.children-container { display: flex; flex-direction: column; gap: 12px; padding-left: 24px; position: relative; }
 
-/* ── 接続線（コンパクト版） ── */
-.node-box::after {
-  content: ''; position: absolute; top: 50%; right: -12px; width: 12px; height: 1px; background: var(--line-color); z-index: 1;
-}
+.node-box::after { content: ''; position: absolute; top: 50%; right: -12px; width: 12px; height: 1px; background: var(--line-color); z-index: 1; }
 .node-box.leaf::after { display: none; } 
-.children-container > .tree-branch::before {
-  content: ''; position: absolute; top: 50%; left: -12px; width: 12px; height: 1px; background: var(--line-color); z-index: 1;
-}
-.children-container > .tree-branch::after {
-  content: ''; position: absolute; left: -12px; width: 1px; background: var(--line-color); z-index: 1;
-}
+.children-container > .tree-branch::before { content: ''; position: absolute; top: 50%; left: -12px; width: 12px; height: 1px; background: var(--line-color); z-index: 1; }
+.children-container > .tree-branch::after { content: ''; position: absolute; left: -12px; width: 1px; background: var(--line-color); z-index: 1; }
 .children-container > .tree-branch:first-child::after { top: 50%; bottom: 0; }
 .children-container > .tree-branch:last-child::after { top: 0; height: 50%; }
 .children-container > .tree-branch:not(:first-child):not(:last-child)::after { top: 0; bottom: 0; }
 .children-container > .tree-branch:first-child:last-child::after { display: none; } 
+
+/* ── 📸 画像エクスポート時だけの「超きれいな横長」強制CSS ── */
+.canvas-body.exporting {
+  display: flex !important;
+  flex-direction: row !important; /* 絶対に横並び */
+  align-items: center !important;
+  gap: 32px !important;
+  padding: 40px !important;
+  background: #090D13 !important;
+  width: max-content !important; /* 横幅をコンテンツに自動追従 */
+  height: auto !important;
+}
+.canvas-body.exporting .title-zone {
+  width: 180px !important;
+  border-right: 1px solid rgba(48,54,61,0.5) !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  padding-right: 20px !important;
+}
+.canvas-body.exporting .tree-container {
+  transform: none !important; /* ボケ防止のために一度等倍でキャプチャ */
+}
 </style>
 </head>
 <body>
@@ -143,15 +140,15 @@ textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radiu
     <div class="canvas-controls-bar">
       <div class="canvas-controls">
         <div class="zoom-ctrl">
-          <span>サイズ調整:</span>
+          <span>画面表示サイズ:</span>
           <input type="range" id="zoom-slider" min="0.3" max="1.0" step="0.05" value="0.9">
           <span id="zoom-val">90%</span>
         </div>
-        <button class="print-btn" onclick="window.print()">📄 PDF出力</button>
+        <button class="download-btn" onclick="saveAsImage()">📸 画像として保存</button>
       </div>
     </div>
     
-    <div class="canvas-body">
+    <div id="capture-target" class="canvas-body">
       <div class="title-zone">
         <div id="canvas-title-display" class="canvas-title"></div>
       </div>
@@ -184,6 +181,35 @@ zoomSlider.addEventListener('input', (e) => {
   document.documentElement.style.setProperty('--zoom-scale', val);
   zoomVal.textContent = Math.round(val * 100) + '%';
 });
+
+// ★ワンクリックで高解像度横長PNGをダウンロードするコアロジック
+function saveAsImage() {
+  const target = document.getElementById('capture-target');
+  
+  // 1. 画像化のために一時的に「横長エクスポートモード」のCSSを適用
+  target.classList.add('exporting');
+  
+  // 2. CSSが適用されるのをわずかに待ってからキャプチャ
+  setTimeout(() => {
+    html2canvas(target, {
+      backgroundColor: '#090D13', // 背景色を黒に固定
+      scale: 2,                   // ★解像度を2倍にしてXやnoteでも文字が絶対ボケないようにする
+      logging: false,
+      width: target.scrollWidth,
+      height: target.scrollHeight
+    }).then(canvas => {
+      // 3. キャプチャが終わったら画面の表示を元に戻す
+      target.classList.remove('exporting');
+      
+      // 4. ダウンロード処理を実行
+      const link = document.createElement('a');
+      const filename = titleInput.value.trim() || 'logic-tree';
+      link.download = filename + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  }, 100);
+}
 
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
