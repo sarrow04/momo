@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>縦型最適化・ロジックツリーシミュレーター</title>
+<title>スマホ完全対応・ロジックツリーシミュレーター</title>
 <style>
 :root{
   --bg:#090D13;       
@@ -13,16 +13,16 @@
   --muted:#8B949E;    
   --blue-glow:#388BFD;
   --card-bg:#1F242E;  
-  --line-color:#4B5563; /* 接続線の色を少し見やすく調整 */
+  --line-color:#4B5563; 
   --zoom-scale: 1; 
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:16px}
 
-/* ── 📄 印刷・PDF出力用の制御（縦長 Portrait に最適化） ── */
+/* ── 📄 印刷・PDF出力用の制御（どんなデバイスから印刷しても「左タイトル・右ツリー」を強制） ── */
 @media print {
   @page {
-    size: portrait; /* ★強制的に「縦向き」印刷にします */
+    size: portrait; 
     margin: 15mm;    
   }
   body { 
@@ -31,18 +31,29 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     -webkit-print-color-adjust: exact; 
     print-color-adjust: exact; 
   }
-  header, .panel, .canvas-controls { display: none !important; } 
+  header, .panel, .canvas-controls-bar { display: none !important; } 
   .layout { display: block !important; height: auto !important; width: 100% !important; }
   .tree-canvas { border: none !important; padding: 0 !important; overflow: visible !important; width: 100% !important; }
-  .canvas-body { display: flex !important; gap: 40px !important; }
+  
+  /* 印刷時は絶対に横並び（左タイトル・右ツリー）にする */
+  .canvas-body { display: flex !important; flex-direction: row !important; gap: 40px !important; }
+  .title-zone { 
+    width: 200px !important; 
+    flex-shrink: 0 !important;
+    border-right: 1px solid rgba(48,54,61,0.5) !important; 
+    border-bottom: none !important;
+    padding-right: 20px !important; 
+    padding-bottom: 0 !important; 
+  }
+  .tree-zone { flex: 1 !important; }
 }
 
 header{text-align:center;margin-bottom:20px}
-header h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
-header p{color:var(--muted);font-size:12px;margin-top:4px}
+header h1{font-size:18px;font-weight:700;letter-spacing:-.02em}
+header p{color:var(--muted);font-size:11px;margin-top:4px}
 
-.layout{display:grid;grid-template-columns:350px 1fr;gap:20px;max-width:1600px;margin:0 auto;height:calc(100vh - 100px)}
-@media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}}
+/* 全体レイアウト */
+.layout{display:grid;grid-template-columns:350px 1fr;gap:16px;max-width:1600px;margin:0 auto;height:calc(100vh - 100px)}
 
 /* ── 左側：入力パネル ── */
 .panel{background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column}
@@ -50,52 +61,67 @@ header p{color:var(--muted);font-size:12px;margin-top:4px}
 
 #title-input {
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text);
-  padding: 10px 12px; font-size: 14px; outline: none; margin-bottom: 20px; transition: border-color 0.2s;
+  padding: 10px 12px; font-size: 14px; outline: none; margin-bottom: 16px; transition: border-color 0.2s;
 }
 #title-input:focus { border-color: var(--blue-glow); }
 
-textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:14px;resize:none;outline:none;line-height:1.6;min-height:300px}
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:14px;resize:none;outline:none;line-height:1.6;min-height:250px}
 textarea:focus{border-color:var(--blue-glow)}
 
 /* ── 右側：ツリー表示キャンバス ── */
-.tree-canvas{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px 30px;overflow:auto;display:flex;flex-direction:column;position:relative}
+.tree-canvas{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;overflow:auto;display:flex;flex-direction:column;position:relative}
 
 /* コントロール（上部） */
-.canvas-controls-bar{display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;flex-shrink:0;padding-bottom:10px;border-bottom:1px solid rgba(48,54,61,0.3)}
-.canvas-controls{display:flex;align-items:center;gap:20px;}
-.zoom-ctrl{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
-.zoom-ctrl input[type="range"] { cursor: pointer; accent-color: var(--blue-glow); }
-#zoom-val { font-family: monospace; color: var(--text); min-width: 40px; }
-.print-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.2s;white-space:nowrap}
+.canvas-controls-bar{display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;flex-shrink:0;padding-bottom:10px;border-bottom:1px solid rgba(48,54,61,0.3);gap:10px;flex-wrap:wrap;}
+.canvas-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.zoom-ctrl{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.zoom-ctrl input[type="range"] { cursor: pointer; accent-color: var(--blue-glow); width: 100px; }
+#zoom-val { font-family: monospace; color: var(--text); min-width: 35px; }
+.print-btn{background:#238636;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.2s;white-space:nowrap}
 .print-btn:hover{opacity:0.9}
 
-/* ★コアレイアウト：左にタイトル、右にツリーの横並び構造 */
+/* ★PC時の基本構造（横並び） */
 .canvas-body { display: flex; gap: 40px; align-items: start; flex: 1; }
-
-/* 左側：固定タイトルゾーン */
 .title-zone {
   width: 220px; flex-shrink: 0; padding-top: 10px;
-  border-right: 1px solid rgba(48,54,61,0.5); padding-right: 20px; min-height: 150px;
+  border-right: 1px solid rgba(48,54,61,0.5); padding-right: 20px;
 }
-.canvas-title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); line-height: 1.4; word-break: break-all; }
-
-/* 右側：縦型ツリー表示ゾーン */
-.tree-zone { flex: 1; overflow: auto; padding-top: 10px; }
+.canvas-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); line-height: 1.4; word-break: break-all; }
+.tree-zone { flex: 1; overflow: auto; padding-top: 10px; width: 100%; }
 .tree-container {
   transform: scale(var(--zoom-scale)); 
   transform-origin: left top;      
   display: inline-block;
 }
 
-/* ── 縦型接続線＆ボックスのデザイン ── */
-.tree-line { display: flex; align-items: center; margin-bottom: 8px; }
+/* ── 📱 スマホ・タブレット（画面幅が狭い時）の表示調整 ── */
+@media(max-width: 900px){
+  body { padding: 8px; }
+  .layout { grid-template-columns: 1fr; height: auto; gap: 16px; }
+  .panel { min-height: 400px; }
+  .tree-canvas { min-height: 500px; padding: 16px; }
+  
+  /* スマホ画面では「縦並び（上がタイトル、下がツリー）」にしてはみ出しを防ぐ */
+  .canvas-body { flex-direction: column; gap: 20px; }
+  .title-zone { 
+    width: 100%; 
+    border-right: none; 
+    border-bottom: 1px solid rgba(48,54,61,0.3); 
+    padding-right: 0; 
+    padding-bottom: 16px; 
+  }
+  .canvas-title { font-size: 18px; } /* スマホ用に文字サイズを最適化 */
+}
+
+/* ── 接続線＆ボックスのデザイン ── */
+.tree-line { display: flex; align-items: center; margin-bottom: 8px; white-space: nowrap; }
 .prefix {
   font-family: 'Courier New', monospace; font-size: 16px; color: var(--line-color);
   white-space: pre; letter-spacing: 0px; display: inline-block; line-height: 1; user-select: none;
 }
 .node-box {
   background: var(--card-bg); border: 1px solid var(--border); color: var(--text);
-  padding: 8px 16px; border-radius: 8px; min-width: 200px; max-width: 280px;
+  padding: 8px 14px; border-radius: 8px; min-width: 180px; max-width: 260px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-flex; flex-direction: column; gap: 2px; text-align: left;
 }
 .node-box.root-node {
@@ -109,8 +135,7 @@ textarea:focus{border-color:var(--blue-glow)}
 <body>
 
 <header>
-  <h1>縦型最適化・ロジックツリーシミュレーター</h1>
-  <p>横幅を取らない縦型ツリーに刷新。左側にタイトルが固定され、通常のA4縦型PDFに美しく収まります。</p>
+  <h1>マルチレスポンシブ・ロジックツリー</h1>
 </header>
 
 <div class="layout">
@@ -137,8 +162,8 @@ textarea:focus{border-color:var(--blue-glow)}
     <div class="canvas-controls-bar">
       <div class="canvas-controls">
         <div class="zoom-ctrl">
-          <span>ツリーサイズ調整:</span>
-          <input type="range" id="zoom-slider" min="0.5" max="1.2" step="0.05" value="1">
+          <span>サイズ:</span>
+          <input type="range" id="zoom-slider" min="0.4" max="1.2" step="0.05" value="1">
           <span id="zoom-val">100%</span>
         </div>
         <button class="print-btn" onclick="window.print()">📄 PDF·印刷出力</button>
@@ -167,14 +192,12 @@ const canvasTitleDisplay = document.getElementById('canvas-title-display');
 const zoomSlider = document.getElementById('zoom-slider');
 const zoomVal = document.getElementById('zoom-val');
 
-// タイトルのリアルタイム連動（改行に対応）
 function updateTitleDisplay() {
   canvasTitleDisplay.innerHTML = escapeHtml(titleInput.value).replace(/\n/g, '<br>');
 }
 titleInput.addEventListener('input', updateTitleDisplay);
-updateTitleDisplay(); // 初期化
+updateTitleDisplay(); 
 
-// ズーム機能
 zoomSlider.addEventListener('input', (e) => {
   const val = e.target.value;
   document.documentElement.style.setProperty('--zoom-scale', val);
@@ -185,7 +208,6 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// インデント解析と自動計算
 function parseAndCalculateTree(text) {
   const lines = text.split('\n');
   const nodes = [];
@@ -242,7 +264,6 @@ function parseAndCalculateTree(text) {
   return root.children;
 }
 
-// ★縦型ツリーHTMLの再帰生成（美しいアスキー罫線連動）
 function generateTreeHtml(nodes, isLastArray = []) {
   let html = "";
   
@@ -250,7 +271,6 @@ function generateTreeHtml(nodes, isLastArray = []) {
     const isLast = index === nodes.length - 1;
     let linePrefix = "";
     
-    // 階層に応じた線の生成
     for (let i = 0; i < isLastArray.length; i++) {
       linePrefix += isLastArray[i] ? "    " : "│   ";
     }
@@ -295,7 +315,7 @@ function updateTree() {
 }
 
 input.addEventListener('input', updateTree);
-updateTree(); // 初回起動
+updateTree(); 
 </script>
 
 </body>
