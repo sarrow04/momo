@@ -3,536 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ボトルネック因数分解ツール</title>
+<title>シンプル・ロジックツリージェネレーター</title>
 <style>
 :root{
   --bg:#0D1117;--surface:#161B22;--border:#30363D;
-  --text:#F0F6FF;--muted:#6B7280;
-  --blue:#3B82F6;--green:#10B981;--yellow:#F59E0B;--red:#EF4444;
+  --text:#F0F6FF;--muted:#6B7280;--blue:#3B82F6;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',sans-serif;min-height:100vh;padding:28px 16px 80px}
-header{text-align:center;margin-bottom:36px}
-header .label{font-family:monospace;font-size:11px;letter-spacing:.18em;color:var(--blue);text-transform:uppercase;margin-bottom:8px}
-header h1{font-size:clamp(20px,3.5vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.2}
-header p{color:var(--muted);font-size:13px;margin-top:8px;max-width:440px;margin-inline:auto;line-height:1.6}
-.report-btn{display:inline-flex;align-items:center;gap:7px;margin-top:14px;background:var(--blue);color:#fff;border:none;border-radius:7px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
-.report-btn:hover{opacity:.85;transform:translateY(-1px)}
-.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:1160px;margin:0 auto}
-@media(max-width:760px){.layout{grid-template-columns:1fr}}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
-.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-family:monospace}
-
-/* ── TREE ── */
-.tree-root{font-family:'Courier New',monospace;font-size:13px;line-height:1}
-.tree-node{position:relative}
-.node-row{display:flex;align-items:flex-start;gap:0;cursor:pointer;border-radius:6px;transition:background .12s;padding:2px 4px 2px 0;margin-bottom:1px}
-.node-row:hover{background:rgba(255,255,255,.04)}
-.node-prefix{white-space:pre;color:#374151;flex-shrink:0;line-height:24px;font-size:13px}
-.node-main{display:flex;align-items:center;gap:0;flex:1;min-width:0;border-radius:5px;padding:3px 6px;border-left:2px solid transparent;transition:border-color .15s,background .15s}
-.node-main.c-bottleneck{border-left-color:var(--red);background:rgba(239,68,68,.08)}
-.node-main.c-causal{border-left-color:var(--green);background:rgba(16,185,129,.07)}
-.node-main.c-corr{border-left-color:var(--yellow);background:rgba(245,158,11,.07)}
-.node-toggle{font-size:10px;color:var(--muted);margin-right:5px;flex-shrink:0;transition:transform .18s;line-height:18px;width:12px;text-align:center}
-.node-toggle.open{transform:rotate(0)}
-.node-toggle.closed{transform:rotate(-90deg)}
-.node-toggle.leaf{opacity:0;pointer-events:none}
-.node-label-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.node-name-input{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;font-family:'Courier New',monospace;outline:none;min-width:60px;width:auto;max-width:200px}
-.node-name-input::placeholder{color:var(--muted);font-weight:400}
-.node-formula{color:var(--muted);font-size:11px;flex-shrink:0}
-.node-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0;white-space:nowrap}
-.badge-bottleneck{background:rgba(239,68,68,.2);color:var(--red)}
-.badge-causal{background:rgba(16,185,129,.18);color:var(--green)}
-.badge-corr{background:rgba(245,158,11,.18);color:var(--yellow)}
-.node-controls{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
-.ctrl-select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:2px 4px;border-radius:3px;outline:none;cursor:pointer;font-family:monospace}
-.ctrl-select:focus{border-color:var(--blue)}
-.ctrl-score{background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:2px 4px;border-radius:3px;outline:none;width:40px;font-family:monospace}
-.ctrl-score:focus{border-color:var(--blue)}
-.node-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
-.act-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:3px;line-height:1;transition:color .12s,background .12s;font-family:monospace}
-.act-btn:hover{color:var(--text);background:rgba(255,255,255,.08)}
-.act-btn.del:hover{color:var(--red)}
-.children-wrap{overflow:hidden;transition:max-height .22s ease,opacity .18s ease}
-.children-wrap.collapsed{max-height:0!important;opacity:0;pointer-events:none}
-
-/* ── RESULT PANEL ── */
-.formula-bar{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 13px;font-family:monospace;font-size:13px;color:var(--blue);margin-bottom:14px;white-space:nowrap;overflow-x:auto}
-.score-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:14px}
-.score-card{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px;text-align:center}
-.score-card .num{font-size:22px;font-weight:700;font-family:monospace;line-height:1}
-.num-red{color:var(--red)}.num-green{color:var(--green)}.num-yellow{color:var(--yellow)}
-.score-card .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;font-family:monospace}
-.result-section{margin-bottom:14px}
-.result-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-family:monospace;margin-bottom:7px}
-.result-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;margin-bottom:4px;font-size:12px;line-height:1.5}
-.result-item.is-bottleneck{border-color:var(--red)}
-.dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.dot-red{background:var(--red);box-shadow:0 0 5px var(--red)}.dot-green{background:var(--green)}.dot-yellow{background:var(--yellow)}
-.result-item strong{display:block;font-weight:600;margin-bottom:1px;font-family:monospace}
-.result-item span{color:var(--muted);font-size:11px}
-.empty-state{color:var(--muted);font-size:12px;text-align:center;padding:24px 0;font-family:monospace;line-height:1.8}
-.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);font-family:monospace}
-.legend-dot{width:6px;height:6px;border-radius:50%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
+header{text-align:center;margin-bottom:24px}
+header h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+header p{color:var(--muted);font-size:12px;margin-top:4px}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1200px;margin:0 auto;height:calc(100vh - 120px)}
+@media(max-width:768px){.layout{grid-template-columns:1fr;height:auto}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column}
+.panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-family:monospace;text-transform:uppercase}
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:12px;resize:none;outline:none;line-height:1.6;min-height:300px}
+textarea:focus{border-color:var(--blue)}
+.tree-view{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;overflow:auto;font-family:'Courier New',monospace;font-size:13px;line-height:1.8;white-space:pre;min-height:300px}
+.tree-line{display:flex;align-items:center}
+.prefix{color:#374151;user-select:none}
+.node-name{color:var(--text);font-weight:600}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="label">Fermi Bottleneck Finder</div>
-  <h1>企業ボトルネック<br>因数分解ツール</h1>
-  <p>売上を最大5層に因数分解。関係性・影響度を入力してボトルネックを特定します。</p>
-  <button class="report-btn" onclick="openReport()">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    ロジックツリーレポートを出力
-  </button>
+  <h1>シンプル・ロジックツリー作成ツール</h1>
+  <p>左側で「スペース」を使って字下げすると、右側に美しいツリーがリアルタイムで描画されます。</p>
 </header>
 
 <div class="layout">
   <div class="panel">
-    <div class="panel-title">// ロジックツリー</div>
-    <div id="tree-root" class="tree-root"></div>
+    <div class="panel-title">// 入力エリア（文字とスペースだけでOK）</div>
+    <textarea id="tree-input" spellcheck="false">売上（円）
+  [A] 月間稼働人数（人）
+    【① 新規稼働人数】
+      新規応募数（人）
+      面談設定率（%）
+      成約率（%）
+    【② 継続稼働人数】
+      前月の稼働人数（人）
+      契約更新率（%）
+  [B] 1人あたり月間平均売上（円）
+    【③ 平均派遣時給（円）】
+    【④ 月間平均稼働時間（時間）】
+      所定労働時間（時間）
+      平均残業時間（時間）</textarea>
   </div>
+  
   <div class="panel">
-    <div class="panel-title">// 診断結果</div>
-    <div class="formula-bar" id="formula-bar">売上 = ...</div>
-    <div class="score-grid">
-      <div class="score-card"><div class="num num-red" id="cnt-b">0</div><div class="lbl">ボトルネック</div></div>
-      <div class="score-card"><div class="num num-green" id="cnt-c">0</div><div class="lbl">因果あり</div></div>
-      <div class="score-card"><div class="num num-yellow" id="cnt-r">0</div><div class="lbl">相関のみ</div></div>
-    </div>
-    <div class="result-section" id="sec-b" style="display:none"><div class="result-title">🔴 ボトルネック（要因果確認）</div><div id="list-b"></div></div>
-    <div class="result-section" id="sec-c" style="display:none"><div class="result-title">🟢 因果確認済み — 施策効果が出やすい</div><div id="list-c"></div></div>
-    <div class="result-section" id="sec-r" style="display:none"><div class="result-title">🟡 相関のみ — 第三因子の可能性あり</div><div id="list-r"></div></div>
-    <div class="empty-state" id="empty-state">← 左でノードを設定すると<br>診断結果がここに表示されます</div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>ボトルネック</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>因果あり</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>相関のみ</div>
-    </div>
+    <div class="panel-title">// ロジックツリー自動表示</div>
+    <div id="tree-output" class="tree-view"></div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════
-// STATE
-// ══════════════════════════════════════
-var idC = 100;
-function nid(){ return 'n'+(++idC); }
+const input = document.getElementById('tree-input');
+const output = document.getElementById('tree-output');
 
-var state = {
-  id:'root', name:'売上（円）', formula:'= A × B', rel:'none', score:'', open:true, children:[
-    { id:'l1a', name:'[A] 月間稼働人数（人）', formula:'= ① + ②', rel:'none', score:'', open:true, children:[
-      { id:'l2a', name:'【① 新規稼働人数】', formula:'= 応募数 × 内定率', rel:'none', score:'', open:true, children:[
-        { id:'l3a', name:'新規応募数（人）', formula:'', rel:'none', score:'', open:true, children:[] },
-        { id:'l3b', name:'面談設定率（%）', formula:'', rel:'none', score:'', open:true, children:[] },
-        { id:'l3c', name:'成約率（%）', formula:'', rel:'none', score:'', open:true, children:[] }
-      ]},
-      { id:'l2b', name:'【② 継続稼働人数】', formula:'= 前月稼働人数 × 更新率', rel:'none', score:'', open:true, children:[
-        { id:'l3d', name:'前月の稼働人数（人）', formula:'', rel:'none', score:'', open:true, children:[] },
-        { id:'l3e', name:'契約更新率（%）', formula:'', rel:'none', score:'', open:true, children:[] }
-      ]}
-    ]},
-    { id:'l1b', name:'[B] 1人あたり月間平均売上（円）', formula:'= ③ × ④', rel:'none', score:'', open:true, children:[
-      { id:'l2c', name:'【③ 平均派遣時給（円）】', formula:'', rel:'none', score:'', open:true, children:[] },
-      { id:'l2d', name:'【④ 月間平均稼働時間（時間）】', formula:'= 所定 + 残業', rel:'none', score:'', open:true, children:[
-        { id:'l3f', name:'所定労働時間（時間）', formula:'', rel:'none', score:'', open:true, children:[] },
-        { id:'l3g', name:'平均残業時間（時間）', formula:'', rel:'none', score:'', open:true, children:[] }
-      ]}
-    ]}
-  ]
-};
-
-// ══════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════
-function findNode(id, node){
-  if(node.id===id) return node;
-  for(var i=0;i<(node.children||[]).length;i++){
-    var f=findNode(id,node.children[i]); if(f) return f;
-  }
-  return null;
-}
-function removeNode(id, node){
-  if(!node.children) return;
-  var idx=node.children.findIndex(function(c){return c.id===id;});
-  if(idx!==-1){node.children.splice(idx,1);return;}
-  node.children.forEach(function(c){removeNode(id,c);});
-}
-function collectAll(node, acc, depth){
-  acc=acc||[]; depth=depth||0;
-  if(node.id!=='root') acc.push({node:node, depth:depth});
-  (node.children||[]).forEach(function(c){collectAll(c,acc,depth+1);});
-  return acc;
-}
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function getNodeClass(n){
-  var s=parseInt(n.score)||0;
-  if((n.rel==='corr'||n.rel==='none')&&s>=7) return 'c-bottleneck';
-  if(n.rel==='causal'||n.rel==='both') return 'c-causal';
-  if(n.rel==='corr') return 'c-corr';
-  return '';
-}
-function getBadge(n){
-  var s=parseInt(n.score)||0;
-  if((n.rel==='corr'||n.rel==='none')&&s>=7) return '<span class="node-badge badge-bottleneck">⚠ BN</span>';
-  if(n.rel==='causal'||n.rel==='both') return '<span class="node-badge badge-causal">因果</span>';
-  if(n.rel==='corr') return '<span class="node-badge badge-corr">相関</span>';
-  return '';
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// ══════════════════════════════════════
-// RENDER TREE  (recursive)
-// ══════════════════════════════════════
-// prefix chars like image: vertical bar "|" and branch "├─" "└─"
-function renderNode(node, container, depth, isLast, ancestorLines){
-  // ancestorLines: array of booleans — true = draw vertical line at that depth
-  depth = depth||0;
-  isLast = isLast===undefined ? true : isLast;
-  ancestorLines = ancestorLines||[];
-
-  var wrap = document.createElement('div');
-  wrap.className = 'tree-node';
-  wrap.dataset.id = node.id;
-
-  /* ── node row ── */
-  var row = document.createElement('div');
-  row.className = 'node-row';
-
-  // build prefix string
-  var prefix = '';
-  if(depth > 0){
-    for(var i=0;i<depth-1;i++){
-      prefix += ancestorLines[i] ? '\u2502   ' : '    ';
-    }
-    prefix += isLast ? '\u2514\u2500 ' : '\u251C\u2500 ';
-  }
-
-  var prefixEl = document.createElement('span');
-  prefixEl.className = 'node-prefix';
-  prefixEl.style.lineHeight = '28px';
-  prefixEl.textContent = prefix;
-  row.appendChild(prefixEl);
-
-  var main = document.createElement('div');
-  main.className = 'node-main ' + getNodeClass(node);
-
-  // toggle for root & non-leaf
-  var hasChildren = node.children && node.children.length > 0;
-  var toggleEl = document.createElement('span');
-  toggleEl.className = 'node-toggle ' + (hasChildren ? (node.open ? 'open' : 'closed') : 'leaf');
-  toggleEl.textContent = '▼';
-  main.appendChild(toggleEl);
-
-  // label wrap
-  var lblWrap = document.createElement('div');
-  lblWrap.className = 'node-label-wrap';
-
-  var nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.className = 'node-name-input';
-  nameInput.value = node.name || '';
-  nameInput.placeholder = '指標名';
-  // auto-size
-  nameInput.style.width = Math.max(60, (node.name||'指標名').length * 8.5) + 'px';
-  nameInput.addEventListener('input', function(e){
-    node.name = e.target.value;
-    e.target.style.width = Math.max(60, e.target.value.length * 8.5 + 10) + 'px';
-    updateResults();
+// テキストのインデントを解析してツリー構造に変換
+function parseTree(text) {
+  const lines = text.split('\n');
+  const nodes = [];
+  
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    const indent = line.search(/\S/); // 最初に出てくる文字までの空白数
+    const name = line.trim();
+    nodes.push({ name, indent, children: [] });
   });
-  lblWrap.appendChild(nameInput);
 
+  const root = { name: "Root", children: [], indent: -1 };
+  const stack = [root];
 
+  nodes.forEach(node => {
+    while (stack.length > 1 && stack[stack.length - 1].indent >= node.indent) {
+      stack.pop();
+    }
+    stack[stack.length - 1].children.push(node);
+    stack.push(node);
+  });
 
-  main.appendChild(lblWrap);
+  return root.children;
+}
 
-  // badge
-  if(depth > 0){
-    var badgeEl = document.createElement('span');
-    badgeEl.innerHTML = getBadge(node);
-    badgeEl.dataset.badge = node.id;
-    main.appendChild(badgeEl);
-  }
+// ツリー構造から罫線付きHTMLを生成
+function generateTreeHtml(nodes, isRootLevel = true, isLastArray = []) {
+  let html = "";
+  const hideRootPrefix = isRootLevel && nodes.length === 1;
 
-  // controls (only non-root)
-  if(depth > 0){
-    var ctrl = document.createElement('div');
-    ctrl.className = 'node-controls';
-
-    var relSel = document.createElement('select');
-    relSel.className = 'ctrl-select';
-    [['none','未設定'],['causal','✅因果'],['corr','〜相関'],['both','⚡両方']].forEach(function(o){
-      var opt = document.createElement('option');
-      opt.value = o[0]; opt.textContent = o[1];
-      if(node.rel===o[0]) opt.selected = true;
-      relSel.appendChild(opt);
-    });
-    relSel.addEventListener('change', function(e){
-      node.rel = e.target.value;
-      refreshCard(node, main, badgeEl);
-      updateResults();
-    });
-    ctrl.appendChild(relSel);
-
-    var scoreIn = document.createElement('input');
-    scoreIn.type = 'number'; scoreIn.min='1'; scoreIn.max='10';
-    scoreIn.className = 'ctrl-score';
-    scoreIn.value = node.score || '';
-    scoreIn.placeholder = '—';
-    scoreIn.title = '影響度 1-10';
-    scoreIn.addEventListener('input', function(e){
-      node.score = e.target.value;
-      refreshCard(node, main, badgeEl);
-      updateResults();
-    });
-    ctrl.appendChild(scoreIn);
-    main.appendChild(ctrl);
-  }
-
-  // action buttons
-  var acts = document.createElement('div');
-  acts.className = 'node-actions';
-
-  if(depth < 5){
-    var addBtn = document.createElement('button');
-    addBtn.className = 'act-btn';
-    addBtn.title = '子ノードを追加';
-    addBtn.textContent = '+';
-    addBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      node.children = node.children || [];
-      node.children.push({id:nid(),name:'',formula:'',rel:'none',score:'',open:true,children:[]});
-      node.open = true;
-      renderTree();
-    });
-    acts.appendChild(addBtn);
-  }
-
-  if(depth > 0){
-    var delBtn = document.createElement('button');
-    delBtn.className = 'act-btn del';
-    delBtn.title = '削除';
-    delBtn.textContent = '×';
-    delBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      removeNode(node.id, state);
-      renderTree();
-    });
-    acts.appendChild(delBtn);
-  }
-  main.appendChild(acts);
-  row.appendChild(main);
-  wrap.appendChild(row);
-
-  // toggle click
-  row.addEventListener('click', function(e){
-    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='BUTTON') return;
-    if(!hasChildren) return;
-    node.open = !node.open;
-    toggleEl.className = 'node-toggle ' + (node.open ? 'open' : 'closed');
-    var cw = wrap.querySelector(':scope > .children-wrap');
-    if(cw){
-      if(node.open){
-        cw.classList.remove('collapsed');
-        cw.style.maxHeight = cw.scrollHeight + 600 + 'px';
-        cw.style.opacity = '1';
-      } else {
-        cw.style.maxHeight = cw.scrollHeight + 'px';
-        requestAnimationFrame(function(){
-          cw.style.maxHeight = '0px';
-          cw.style.opacity = '0';
-          cw.classList.add('collapsed');
-        });
+  nodes.forEach((node, index) => {
+    const isLast = index === nodes.length - 1;
+    let linePrefix = "";
+    
+    if (!hideRootPrefix) {
+      for (let i = 0; i < isLastArray.length; i++) {
+        linePrefix += isLastArray[i] ? "    " : "│   ";
       }
+      linePrefix += isLast ? "└─ " : "├─ ";
+    }
+
+    html += `<div class="tree-line">` +
+            `<span class="prefix">${linePrefix}</span>` +
+            `<span class="node-name">${escapeHtml(node.name)}</span>` +
+            `</div>`;
+            
+    if (node.children.length > 0) {
+      const nextLastArray = hideRootPrefix ? [] : [...isLastArray, isLast];
+      html += generateTreeHtml(node.children, false, nextLastArray);
     }
   });
-
-  // children
-  if(hasChildren){
-    var childrenWrap = document.createElement('div');
-    childrenWrap.className = 'children-wrap' + (node.open ? '' : ' collapsed');
-    childrenWrap.style.maxHeight = node.open ? '9999px' : '0px';
-    childrenWrap.style.opacity = node.open ? '1' : '0';
-
-    var newAncestorLines = ancestorLines.concat([!isLast]);
-    node.children.forEach(function(child, i){
-      var childIsLast = (i === node.children.length - 1);
-      renderNode(child, childrenWrap, depth+1, childIsLast, newAncestorLines);
-    });
-    wrap.appendChild(childrenWrap);
-  }
-
-  container.appendChild(wrap);
+  return html;
 }
 
-function refreshCard(node, mainEl, badgeEl){
-  mainEl.className = 'node-main ' + getNodeClass(node);
-  if(badgeEl) badgeEl.innerHTML = getBadge(node);
+function updateTree() {
+  const nodes = parseTree(input.value);
+  output.innerHTML = generateTreeHtml(nodes);
 }
 
-function renderTree(){
-  var container = document.getElementById('tree-root');
-  container.innerHTML = '';
-  renderNode(state, container, 0, true, []);
-  updateResults();
-}
-
-// ══════════════════════════════════════
-// RESULTS
-// ══════════════════════════════════════
-function updateResults(){
-  var all = collectAll(state);
-  var named = all.filter(function(x){return x.node.name.trim();});
-
-  var l1 = state.children.map(function(n){return n.name||'?';}).join(' × ');
-  document.getElementById('formula-bar').textContent = '売上 = ' + (l1||'...');
-
-  var bottlenecks=[], causals=[], corrs=[];
-  named.forEach(function(x){
-    var n=x.node, s=parseInt(n.score)||0;
-    if((n.rel==='corr'||n.rel==='none')&&s>=7) bottlenecks.push(x);
-    else if(n.rel==='causal'||n.rel==='both') causals.push(x);
-    else if(n.rel==='corr') corrs.push(x);
-  });
-
-  document.getElementById('cnt-b').textContent = bottlenecks.length;
-  document.getElementById('cnt-c').textContent = causals.length;
-  document.getElementById('cnt-r').textContent = corrs.length;
-
-  var hasAny = bottlenecks.length+causals.length+corrs.length > 0;
-  document.getElementById('empty-state').style.display = hasAny ? 'none' : 'block';
-
-  renderResList('sec-b','list-b',bottlenecks,'b');
-  renderResList('sec-c','list-c',causals,'c');
-  renderResList('sec-r','list-r',corrs,'r');
-}
-
-function renderResList(sid, lid, items, type){
-  var sec=document.getElementById(sid), lst=document.getElementById(lid);
-  if(!items.length){sec.style.display='none';return;}
-  sec.style.display='block'; lst.innerHTML='';
-  var dc={b:'dot-red',c:'dot-green',r:'dot-yellow'}[type];
-  var mg={
-    b:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'?')+'/10 — 因果未確認。施策前に因果検証を。';},
-    c:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'未入力')+'/10 — 直接施策のROIが高い。';},
-    r:function(x){return 'L'+(x.depth)+' | 影響度 '+(x.node.score||'未入力')+'/10 — 第三因子の可能性あり。要因検証を推奨。';}
-  }[type];
-  items.forEach(function(x){
-    var el=document.createElement('div');
-    el.className='result-item'+(type==='b'?' is-bottleneck':'');
-    el.innerHTML='<div class="dot '+dc+'"></div><div><strong>'+escH(x.node.name)+'</strong><span>'+mg(x)+'</span></div>';
-    lst.appendChild(el);
-  });
-}
-
-// ══════════════════════════════════════
-// REPORT
-// ══════════════════════════════════════
-function openReport(){
-  var all=collectAll(state);
-  var named=all.filter(function(x){return x.node.name.trim();});
-  var date=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
-
-  var bots=[],caus=[],cors=[];
-  named.forEach(function(x){
-    var n=x.node,s=parseInt(n.score)||0;
-    if((n.rel==='corr'||n.rel==='none')&&s>=7) bots.push(x);
-    else if(n.rel==='causal'||n.rel==='both') caus.push(x);
-    else if(n.rel==='corr') cors.push(x);
-  });
-
-  // build text tree for report
-  function buildTextTree(node, depth, isLast, ancestorLines){
-    depth=depth||0; isLast=isLast===undefined?true:isLast; ancestorLines=ancestorLines||[];
-    var prefix='';
-    if(depth>0){
-      for(var i=0;i<depth-1;i++) prefix+=ancestorLines[i]?'│   ':'    ';
-      prefix+=isLast?'└─ ':'├─ ';
-    }
-    var s=parseInt(node.score)||0;
-    var dot='';
-    if(node.id!=='root'){
-      if((node.rel==='corr'||node.rel==='none')&&s>=7) dot=' ⚠';
-      else if(node.rel==='causal'||node.rel==='both') dot=' ✅';
-      else if(node.rel==='corr') dot=' 〜';
-    }
-    var scoreStr=s?' ['+s+'/10]':'';
-    var fStr=node.formula?' '+node.formula:'';
-    var color='#F0F6FF';
-    if(node.id!=='root'){
-      if((node.rel==='corr'||node.rel==='none')&&s>=7) color='#FCA5A5';
-      else if(node.rel==='causal'||node.rel==='both') color='#6EE7B7';
-      else if(node.rel==='corr') color='#FCD34D';
-    }
-    var line='<div style="font-family:\'Courier New\',monospace;font-size:13px;line-height:26px;white-space:pre;color:'+color+'">'+
-      '<span style="color:#374151">'+prefix+'</span>'+
-      escH(node.name)+'<span style="color:#4B5563;font-size:11px">'+escH(fStr)+'</span>'+dot+scoreStr+
-      '</div>';
-    var childLines='';
-    (node.children||[]).forEach(function(c,i){
-      var cl=i===node.children.length-1;
-      childLines+=buildTextTree(c,depth+1,cl,ancestorLines.concat([!isLast]));
-    });
-    return line+childLines;
-  }
-  var treeHtml=buildTextTree(state,0,true,[]);
-
-  function tr(x,bg){
-    var n=x.node,s=parseInt(n.score)||0;
-    var rm={none:'\u672a\u8a2d\u5b9a',causal:'\u2705 \u56e0\u679c',corr:'\uff5e \u76f8\u95a2',both:'\u26a1 \u4e21\u65b9'};
-    var isBot=(n.rel==='corr'||n.rel==='none')&&s>=7;
-    var j=isBot?'<span style="color:#EF4444;font-weight:700">\u26a0 BOTTLENECK</span>'
-      :(n.rel==='causal'||n.rel==='both')?'<span style="color:#10B981">\u65bd\u7b56\u52b9\u679c\u25ce</span>'
-      :n.rel==='corr'?'<span style="color:#F59E0B">\u8981\u56e0\u691c\u8a3c</span>'
-      :'<span style="color:#6B7280">\u672a\u8a55\u4fa1</span>';
-    return '<tr style="background:'+bg+'"><td style="padding:7px 10px"><span style="color:#4B5563;font-family:monospace;font-size:10px;margin-right:6px">L'+x.depth+'</span>'+escH(n.name)+'</td>'
-      +'<td style="padding:7px 10px;text-align:center">'+(rm[n.rel]||'\u672a\u8a2d\u5b9a')+'</td>'
-      +'<td style="padding:7px 10px;text-align:center">'+(s||'&mdash;')+'</td>'
-      +'<td style="padding:7px 10px;text-align:center">'+j+'</td></tr>';
-  }
-  var allRows=named.map(function(x,i){return tr(x,i%2===0?'#161B22':'#0D1117');}).join('');
-
-  var ins=[];
-  if(bots.length)
-    ins.push('<li style="color:#FCA5A5;margin-bottom:10px"><strong style="color:#EF4444">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af '+bots.length+'\u4ef6</strong>\uff1a'+bots.map(function(x){return x.node.name;}).join('\u30fb')+' \u306f\u5f71\u97ff\u5ea6\u304c\u9ad8\u3044\u306b\u3082\u304b\u304b\u308f\u3089\u305a\u56e0\u679c\u95a2\u4fc2\u304c\u672a\u78ba\u8a8d\u3002A/B\u30c6\u30b9\u30c8\u30fb\u56de\u5e30\u5206\u6790\u3067\u56e0\u679c\u691c\u8a3c\u3092\u5b9f\u65bd\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>');
-  if(caus.length){
-    var top=caus.slice().sort(function(a,b){return (parseInt(b.node.score)||0)-(parseInt(a.node.score)||0);})[0];
-    ins.push('<li style="color:#6EE7B7;margin-bottom:10px"><strong style="color:#10B981">\u6700\u512a\u5148\u65bd\u7b56\u5019\u88dc</strong>\uff1a\u5f71\u97ff\u5ea6\u6700\u9ad8\u306f <strong>'+escH(top.node.name)+'\uff08'+(top.node.score||'?')+'/10\uff09</strong>\u3002\u76f4\u63a5\u6539\u5584\u65bd\u7b56\u306eROI\u304c\u6700\u3082\u9ad8\u3044\u898b\u8fbc\u307f\u3002</li>');
-  }
-  if(cors.length&&!bots.length)
-    ins.push('<li style="color:#FCD34D;margin-bottom:10px"><strong style="color:#F59E0B">\u76f8\u95a2\u6307\u6a19\u306e\u6ce8\u610f\u70b9</strong>\uff1a'+cors.map(function(x){return x.node.name;}).join('\u30fb')+' \u306f\u76f8\u95a2\u306e\u307f\u78ba\u8a8d\u3002\u5171\u901a\u56e0\u5b50\u3092\u7279\u5b9a\u3057\u306a\u3044\u307e\u307e\u65bd\u7b56\u3092\u6253\u3064\u3068\u30b3\u30b9\u30c8\u304c\u7121\u99c4\u306b\u306a\u308b\u30ea\u30b9\u30af\u304c\u3042\u308a\u307e\u3059\u3002</li>');
-  if(!ins.length) ins.push('<li style="color:#9CA3AF">\u95a2\u4fc2\u6027\u304c\u5165\u529b\u3055\u308c\u3066\u3044\u307e\u305b\u3093\u3002</li>');
-
-  var l1=state.children.map(function(n){return n.name||'?';}).join(' \u00d7 ');
-  var css='*{box-sizing:border-box;margin:0;padding:0}body{background:#0D1117;color:#F0F6FF;font-family:Arial,sans-serif;padding:40px 28px 80px;max-width:900px;margin:0 auto}h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:11px;color:#6B7280;font-family:monospace;margin-bottom:22px}h2{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;font-family:monospace;margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid #21262d}.tree-box{background:#0a0e14;border:1px solid #21262d;border-radius:8px;padding:16px 20px;overflow-x:auto;margin-bottom:4px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#161B22;color:#8B949E;font-size:9px;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;padding:7px 10px;text-align:left;border-bottom:1px solid #30363D}td{border-bottom:1px solid #21262d}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.kpi{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center}.kpi .num{font-size:26px;font-weight:700;font-family:monospace;line-height:1}.kpi .lbl{font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;margin-top:3px;font-family:monospace}.insight-box{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:16px 18px}ul{list-style:none;padding:0}.formula{font-family:monospace;font-size:13px;color:#3B82F6;background:#0d1d3d;border:1px solid #1e3a6e;border-radius:6px;padding:9px 14px;margin-bottom:18px}.print-btn{display:inline-flex;align-items:center;gap:6px;background:#3B82F6;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:20px}@media print{body{background:#fff;color:#111}.kpi{background:#f5f5f5}.insight-box{background:#f9f9f9}.print-btn{display:none}.tree-box{background:#f9f9f9;border-color:#ddd}}';
-
-  var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>\u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</title><style>'+css+'</style></head><body>'
-    +'<button class="print-btn" onclick="window.print()">\ud83d\udda8 \u5370\u523a / PDF\u4fdd\u5b58</button>'
-    +'<h1>\ud83d\udcca \u30dc\u30c8\u30eb\u30cd\u30c3\u30af\u5206\u6790\u30ec\u30dd\u30fc\u30c8</h1>'
-    +'<div class="meta">\u751f\u6210\u65e5\u6642: '+date+'</div>'
-    +'<div class="formula">\u58f2\u4e0a = '+escH(l1)+'</div>'
-    +'<div class="kpi-grid">'
-    +'<div class="kpi"><div class="num" style="color:#EF4444">'+bots.length+'</div><div class="lbl">\u30dc\u30c8\u30eb\u30cd\u30c3\u30af</div></div>'
-    +'<div class="kpi"><div class="num" style="color:#10B981">'+caus.length+'</div><div class="lbl">\u56e0\u679c\u78ba\u8a8d\u6e08</div></div>'
-    +'<div class="kpi"><div class="num" style="color:#F59E0B">'+cors.length+'</div><div class="lbl">\u76f8\u95a2\u306e\u307f</div></div>'
-    +'</div>'
-    +'<h2>\u30ed\u30b8\u30c3\u30af\u30c4\u30ea\u30fc</h2><div class="tree-box">'+treeHtml+'</div>'
-    +'<h2>\u6307\u6a19\u4e00\u89a7</h2>'
-    +'<table><thead><tr><th>\u5c64</th><th>\u6307\u6a19</th><th>\u5f71\u97ff\u5ea6</th><th>\u5224\u5b9a</th></tr></thead><tbody>'+allRows+'</tbody></table>'
-    +'<h2>\ud83d\udca1 \u30a4\u30f3\u30b5\u30a4\u30c8\u30fb\u30a2\u30af\u30b7\u30e7\u30f3\u63d0\u6848</h2>'
-    +'<div class="insight-box"><ul>'+ins.join('')+'</ul></div>'
-    +'</body></html>';
-
-  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url; a.target='_blank'; a.rel='noopener';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},5000);
-}
-
-renderTree();
+input.addEventListener('input', updateTree);
+updateTree(); // 初回起動
 </script>
+
 </body>
 </html>
