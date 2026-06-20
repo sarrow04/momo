@@ -3,77 +3,136 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ボックス型・ロジックツリージェネレーター</title>
+<title>横型マインドマップ・ロジックツリー</title>
 <style>
 :root{
-  --bg:#0D1117;--surface:#161B22;--border:#30363D;
-  --text:#F0F6FF;--muted:#6B7280;--blue:#3B82F6;
-  --box-bg:#1F242C; /* 四角の中の背景色 */
+  --bg:#090D13;       /* 画像の超ダークな背景色 */
+  --panel-bg:#151922; /* 入力エリアの背景色 */
+  --border:#21262D;   /* 通常の枠線 */
+  --text:#F0F6FF;     /* メイン文字色 */
+  --muted:#8B949E;    /* 「未設定」などの薄い文字色 */
+  --blue-glow:#388BFD;/* 売上（GOAL）の青い光 */
+  --card-bg:#1F242E;  /* 各四角形（カード）の背景色 */
+  --line-color:#30363D;/* ノードを繋ぐ線の色 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px}
-header{text-align:center;margin-bottom:24px}
-header h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 16px;overflow-x:hidden}
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
 header p{color:var(--muted);font-size:12px;margin-top:4px}
-.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1200px;margin:0 auto;height:calc(100vh - 120px)}
-@media(max-width:768px){.layout{grid-template-columns:1fr;height:auto}}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column}
+
+.layout{display:grid;grid-template-columns:320px 1fr;gap:20px;max-width:1440px;margin:0 auto;height:calc(100vh - 100px)}
+@media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}}
+
+.panel{background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column}
 .panel-title{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-family:monospace;text-transform:uppercase}
-textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:12px;resize:none;outline:none;line-height:1.6;min-height:300px}
-textarea:focus{border-color:var(--blue)}
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Courier New',monospace;font-size:13px;padding:14px;resize:none;outline:none;line-height:1.6;min-height:300px}
+textarea:focus{border-color:var(--blue-glow)}
 
-/* ── ツリー表示エリア ── */
-.tree-view{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:16px;overflow:auto;min-height:300px}
-.tree-line{display:flex;align-items:center;margin-bottom:8px} /* ボックスがくっつかないよう余白を確保 */
-.prefix{font-family:'Courier New',monospace;font-size:14px;color:#4B5563;user-select:none;white-space:pre}
+/* ── 右側：横型ツリー表示キャンバス ── */
+.tree-canvas{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:40px;overflow:auto;display:flex;align-items:center}
+.tree-container{display:flex;flex-direction:column;justify-content:center}
 
-/* ── 四角い箱のデザイン ── */
+/* 横への分岐を作るコアフレックス */
+.tree-branch{display:flex;align-items:center;position:relative}
+
+/* ── 四角い箱（ノード）のデザイン ── */
 .node-box {
-  background: var(--box-bg);
+  background: var(--card-bg);
   border: 1px solid var(--border);
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 6px;
-  display: inline-block;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: border-color 0.2s;
+  padding: 14px 20px;
+  border-radius: 10px;
+  min-width: 160px;
+  max-width: 200px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.node-box:hover {
-  border-color: var(--blue); /* ホバーした時に少し光る */
+/* 最左翼（売上）だけ青く光らせる */
+.node-box.root-node {
+  border: 2px solid var(--blue-glow);
+  box-shadow: 0 0 15px rgba(56, 139, 253, 0.2);
 }
+.node-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.node-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+/* 子ノードを包む縦並びコンテナ */
+.children-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;            /* 箱同士の上下の隙間 */
+  padding-left: 40px;   /* 線の長さ（横の隙間） */
+  position: relative;
+}
+
+/* ── 接続線（CSS擬似要素マニアック実装） ── */
+/* 1. 親の箱の右側から出る横線 */
+.node-box::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  width: 20px;
+  height: 1px;
+  background: var(--line-color);
+  z-index: 1;
+}
+.node-box.leaf::after { display: none; } /* 子がいないなら線は出さない */
+
+/* 2. 子の箱の左側に入る横線 */
+.children-container > .tree-branch::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -20px;
+  width: 20px;
+  height: 1px;
+  background: var(--line-color);
+  z-index: 1;
+}
+/* 3. 子ノードたちを縦に繋ぐ一本の架け橋線 */
+.children-container > .tree-branch::after {
+  content: '';
+  position: absolute;
+  left: -20px;
+  width: 1px;
+  background: var(--line-color);
+  z-index: 1;
+}
+.children-container > .tree-branch:first-child::after { top: 50%; bottom: 0; }
+.children-container > .tree-branch:last-child::after { top: 0; height: 50%; }
+.children-container > .tree-branch:not(:first-child):not(:last-child)::after { top: 0; bottom: 0; }
+.children-container > .tree-branch:first-child:last-child::after { display: none; } /* 子が1人なら縦線不要 */
+
 </style>
 </head>
 <body>
 
 <header>
-  <h1>ボックス型・ロジックツリー作成ツール</h1>
-  <p>左側で「スペース」を使って字下げすると、右側に四角で囲まれたツリーがリアルタイムで描画されます。</p>
+  <h1>横型ビジュアル・ロジックツリー</h1>
+  <p>スペースで字下げすると、右側に美しいネットワーク構造がリアルタイム生成されます。</p>
 </header>
 
 <div class="layout">
   <div class="panel">
-    <div class="panel-title">// 入力エリア（文字とスペースだけでOK）</div>
-    <textarea id="tree-input" spellcheck="false">売上（円）
-  [A] 月間稼働人数（人）
-    【① 新規稼働人数】
-      新規応募数（人）
-      面談設定率（%）
-      成約率（%）
-    【② 継続稼働人数】
-      前月の稼働人数（人）
-      契約更新率（%）
-  [B] 1人あたり月間平均売上（円）
-    【③ 平均派遣時給（円）】
-    【④ 月間平均稼働時間（時間）】
-      所定労働時間（時間）
-      平均残業時間（時間）</textarea>
+    <div class="panel-title">// テキスト入力（「|」でサブテキスト変更可）</div>
+    <textarea id="tree-input" spellcheck="false">💰 売上
+  👥 入社数
+    ✨ 応募者
+      🔎 広告
+      🔎 紹介
+  💵 月単価
+    🛒 継続月
+    📌 企業数</textarea>
   </div>
   
-  <div class="panel">
-    <div class="panel-title">// ロジックツリー自動表示</div>
-    <div id="tree-output" class="tree-view"></div>
+  <div class="tree-canvas">
+    <div id="tree-output" class="tree-container"></div>
   </div>
 </div>
 
@@ -85,7 +144,7 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// テキストのインデントを解析してツリー構造に変換
+// インデント解析
 function parseTree(text) {
   const lines = text.split('\n');
   const nodes = [];
@@ -111,32 +170,38 @@ function parseTree(text) {
   return root.children;
 }
 
-// ツリー構造から罫線付きHTMLを生成
-function generateTreeHtml(nodes, isRootLevel = true, isLastArray = []) {
+// 横型HTMLの再帰生成
+function generateTreeHtml(nodes, isRoot = true) {
   let html = "";
-  const hideRootPrefix = isRootLevel && nodes.length === 1;
-
-  nodes.forEach((node, index) => {
-    const isLast = index === nodes.length - 1;
-    let linePrefix = "";
+  
+  nodes.forEach(node => {
+    const hasChildren = node.children.length > 0;
+    const leafClass = hasChildren ? "" : "leaf";
+    const rootClass = isRoot ? "root-node" : "";
     
-    if (!hideRootPrefix) {
-      for (let i = 0; i < isLastArray.length; i++) {
-        linePrefix += isLastArray[i] ? "    " : "│   ";
-      }
-      linePrefix += isLast ? "└─ " : "├─ ";
+    // 「|」があればそれ以降をサブテキストにする隠し機能
+    let title = node.name;
+    let subtitle = "未設定";
+    if (node.name.includes('|')) {
+      const parts = node.name.split('|');
+      title = parts[0].trim();
+      subtitle = parts[1].trim();
     }
 
-    html += `<div class="tree-line">` +
-            `<span class="prefix">${linePrefix}</span>` +
-            `<span class="node-box">${escapeHtml(node.name)}</span>` +
-            `</div>`;
-            
-    if (node.children.length > 0) {
-      const nextLastArray = hideRootPrefix ? [] : [...isLastArray, isLast];
-      html += generateTreeHtml(node.children, false, nextLastArray);
+    html += `<div class="tree-branch">`;
+    html += `  <div class="node-box ${leafClass} ${rootClass}">`;
+    html += `    <div class="node-title">${escapeHtml(title)}</div>`;
+    html += `    <div class="node-sub">${escapeHtml(subtitle)}</div>`;
+    html += `  </div>`;
+    
+    if (hasChildren) {
+      html += `  <div class="children-container">`;
+      html += generateTreeHtml(node.children, false);
+      html += `  </div>`;
     }
+    html += `</div>`;
   });
+  
   return html;
 }
 
@@ -146,7 +211,7 @@ function updateTree() {
 }
 
 input.addEventListener('input', updateTree);
-updateTree(); // 初回起動
+updateTree(); // 初回レンダリング
 </script>
 
 </body>
